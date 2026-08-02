@@ -1,13 +1,11 @@
-import { useState } from 'react'
+import Navbar from "./landing_page/home/Navbar";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
     <>
-      <div>Vireza</div>
+      <Navbar />
     </>
-  )
+  );
 }
 
-export default App
+export default App;

@@ -4,7 +4,7 @@ const Signup = () => {
   return (
     <div className="h-screen w-screen flex items-center content-center bg-red-200  ">
 
-        {/* Left Branding */}
+
       <div className="h-full w-1/2 bg-red-500 flex flex-col items-center content-center">
       
           <h1 className="text-3xl md:text-6xl font-bold tracking-tight mb-4 mt-30">

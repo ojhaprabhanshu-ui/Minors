@@ -1,13 +1,17 @@
-import { useState } from 'react'
+import Navbar from "./landing_page/Navbar";
+import Footer from "./landing_page/Footer";
+import './landing_page/css/App.css';
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <>
-      <div>Vireza</div>
-    </>
-  )
+    <div className="app-container">
+      <Navbar />
+      <main className="main-content">
+        {/* Your page content goes here */}
+      </main>
+      <Footer />
+    </div>
+  );
 }
 
-export default App
+export default App;

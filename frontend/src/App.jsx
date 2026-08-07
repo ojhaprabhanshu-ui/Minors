@@ -4,7 +4,6 @@ import Signup from "./landing_page/signup/Signup";
 function App() {
   return (
     <>
-      <Navbar />
       <Signup />   
     </>
   );

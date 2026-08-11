@@ -1,45 +1,73 @@
 import { useState, useRef, useEffect } from "react";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import logoImage from "./Images/logo.webp";
 import "./css/Navbar.css";
 
-const RESUME_LINKS = [
-  { label: "Resume Builder", href: "/resume/builder" },
-  { label: "Resume Templates", href: "/resume/templates" },
-  { label: "Resume Examples", href: "/resume/examples" },
-  { label: "Check ATS score", href: "/resume/ATS" }
-];
-
-const CV_LINKS = [
-  { label: "CV Builder", href: "/cv/builder" },
-  { label: "CV Templates", href: "/cv/templates" },
-  { label: "CV Examples", href: "/cv/examples" },
-];
-
-const COVER_LETTER_LINKS = [
-  { label: "Cover Letter Builder", href: "/cover-letter/builder" },
-  { label: "Cover Letter Templates", href: "/cover-letter/templates" },
-  { label: "Cover Letter Examples", href: "/cover-letter/examples" },
+const NAV_CONFIG = [
+  {
+    type: "dropdown",
+    id: "resume",
+    label: "Resume",
+    items: [
+      { label: "Resume Builder", href: "/resume/builder" },
+      { label: "Resume Templates", href: "/resume/templates" },
+      { label: "Resume Examples", href: "/resume/examples" },
+      { label: "Check ATS score", href: "/resumeATS" },
+    ],
+  },
+  {
+    type: "dropdown",
+    id: "cv",
+    label: "CV Builder",
+    items: [
+      { label: "CV Builder", href: "/cv/builder" },
+      { label: "CV Templates", href: "/cv/templates" },
+      { label: "CV Examples", href: "/cv/examples" },
+    ],
+  },
+  {
+    type: "dropdown",
+    id: "coverLetter",
+    label: "Cover Letter",
+    items: [
+      { label: "Cover Letter Builder", href: "/cover-letter/builder" },
+      { label: "Cover Letter Templates", href: "/cover-letter/templates" },
+      { label: "Cover Letter Examples", href: "/cover-letter/examples" },
+    ],
+  },
+  { type: "link", label: "Blog", href: "/blog" },
+  { type: "link", label: "AI Interview Coach", href: "/AiInterviewcoach" },
 ];
 
 function Dropdown({ label, items, isOpen, onToggle, onClose }) {
   const ref = useRef(null);
 
   useEffect(() => {
-    function handleClickOutside(e) {
+    if (!isOpen) return;
+
+    const handleClickOutside = (e) => {
       if (ref.current && !ref.current.contains(e.target)) {
         onClose();
       }
-    }
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, [onClose]);
+    };
+
+    // Attach click listener only when open, with subtle delay so toggle click isn't captured
+    const timer = setTimeout(() => {
+      document.addEventListener("click", handleClickOutside);
+    }, 0);
+
+    return () => {
+      clearTimeout(timer);
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, [isOpen, onClose]);
 
   return (
     <div className="nav-dropdown" ref={ref}>
       <button
+        type="button"
         className={`nav-link nav-dropdown-trigger ${isOpen ? "active" : ""}`}
         onClick={onToggle}
-        type="button"
       >
         {label}
         <svg
@@ -58,12 +86,18 @@ function Dropdown({ label, items, isOpen, onToggle, onClose }) {
           />
         </svg>
       </button>
+
       {isOpen && (
         <div className="nav-dropdown-menu">
           {items.map((item) => (
-            <a key={item.href} href={item.href} className="nav-dropdown-item">
+            <Link
+              key={item.href}
+              to={item.href}
+              className="nav-dropdown-item"
+              onClick={onClose}
+            >
               {item.label}
-            </a>
+            </Link>
           ))}
         </div>
       )}
@@ -74,68 +108,60 @@ function Dropdown({ label, items, isOpen, onToggle, onClose }) {
 export default function Navbar() {
   const [openMenu, setOpenMenu] = useState(null);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const location = useLocation();
+
+  // Close menus when route/pathname changes
+  useEffect(() => {
+    setOpenMenu(null);
+    setMobileOpen(false);
+  }, [location.pathname]);
 
   const toggleMenu = (name) => {
     setOpenMenu((prev) => (prev === name ? null : name));
   };
 
   const closeMenu = () => setOpenMenu(null);
+  const closeMobileMenu = () => setMobileOpen(false);
 
   return (
     <header className="navbar-header">
-      {/* Alag Leftmost Logo */}
-      <a href="/" className="standalone-logo">
+      <Link to="/" className="standalone-logo">
         <img src={logoImage} alt="Vireza" className="logo-img" />
-      </a>
+      </Link>
 
-      {/* Floating Options Menu Pill Container */}
       <div className="navbar-container">
         <nav className="navbar-links">
-          <Dropdown
-            label="Resume"
-            items={RESUME_LINKS}
-            isOpen={openMenu === "resume"}
-            onToggle={() => toggleMenu("resume")}
-            onClose={closeMenu}
-          />
-
-          <Dropdown
-            label="CV Builder"
-            items={CV_LINKS}
-            isOpen={openMenu === "cv"}
-            onToggle={() => toggleMenu("cv")}
-            onClose={closeMenu}
-          />
-
-          <Dropdown
-            label="Cover Letter"
-            items={COVER_LETTER_LINKS}
-            isOpen={openMenu === "coverLetter"}
-            onToggle={() => toggleMenu("coverLetter")}
-            onClose={closeMenu}
-          />
-
-          <a href="/blog" className="nav-link">
-            Blog
-          </a>
-          <a href="/AiInterviewcoach" className="nav-link">
-            AI Interview Coach
-          </a>
+          {NAV_CONFIG.map((item) =>
+            item.type === "dropdown" ? (
+              <Dropdown
+                key={item.id}
+                label={item.label}
+                items={item.items}
+                isOpen={openMenu === item.id}
+                onToggle={() => toggleMenu(item.id)}
+                onClose={closeMenu}
+              />
+            ) : (
+              <Link key={item.href} to={item.href} className="nav-link">
+                {item.label}
+              </Link>
+            ),
+          )}
         </nav>
 
         <div className="navbar-actions">
-          <a href="/login" className="nav-login">
+          <Link to="/login" className="nav-login">
             Sign In
-          </a>
-          <a href="/signup" className="cta-button">
+          </Link>
+          <Link to="/signup" className="cta-button">
             Get Started
-          </a>
+          </Link>
 
           <button
+            type="button"
             className="mobile-toggle"
             onClick={() => setMobileOpen((prev) => !prev)}
             aria-label="Toggle menu"
-            type="button"
           >
             <span className={mobileOpen ? "open" : ""} />
             <span className={mobileOpen ? "open" : ""} />
@@ -146,16 +172,57 @@ export default function Navbar() {
 
       {mobileOpen && (
         <div className="mobile-menu">
-          <a href="/resume/builder">Resume</a>
-          <a href="/cv/builder">CV Builder</a>
-          <a href="/cover-letter/builder">Cover Letter</a>
-          <a href="/blog">Blog</a>
-          <a href="/dashboard">Dashboard</a>
+          <Link to="/resume/builder" onClick={closeMobileMenu}>
+            Resume Builder
+          </Link>
+          <Link to="/resume/templates" onClick={closeMobileMenu}>
+            Resume Templates
+          </Link>
+          <Link to="/resume/examples" onClick={closeMobileMenu}>
+            Resume Examples
+          </Link>
+          <Link to="/resumeATS" onClick={closeMobileMenu}>
+            Check ATS Score
+          </Link>
+
+          <Link to="/cv/builder" onClick={closeMobileMenu}>
+            CV Builder
+          </Link>
+          <Link to="/cv/templates" onClick={closeMobileMenu}>
+            CV Templates
+          </Link>
+          <Link to="/cv/examples" onClick={closeMobileMenu}>
+            CV Examples
+          </Link>
+
+          <Link to="/cover-letter/builder" onClick={closeMobileMenu}>
+            Cover Letter Builder
+          </Link>
+          <Link to="/cover-letter/templates" onClick={closeMobileMenu}>
+            Cover Letter Templates
+          </Link>
+          <Link to="/cover-letter/examples" onClick={closeMobileMenu}>
+            Cover Letter Examples
+          </Link>
+
+          <Link to="/blog" onClick={closeMobileMenu}>
+            Blog
+          </Link>
+          <Link to="/AiInterviewcoach" onClick={closeMobileMenu}>
+            AI Interview Coach
+          </Link>
+
           <div className="mobile-menu-divider" />
-          <a href="/login">Sign In</a>
-          <a href="/signup" className="cta-button cta-button-mobile">
+          <Link to="/login" onClick={closeMobileMenu}>
+            Sign In
+          </Link>
+          <Link
+            to="/signup"
+            className="cta-button cta-button-mobile"
+            onClick={closeMobileMenu}
+          >
             Get Started
-          </a>
+          </Link>
         </div>
       )}
     </header>

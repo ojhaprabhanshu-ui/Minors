@@ -3,64 +3,66 @@
   --vireza-slate: #64748b;
   --vireza-indigo: #2563eb;
   --vireza-indigo-dark: #1d4ed8;
-  --vireza-border: rgba(226, 232, 240, 0.5);
+  --vireza-border: rgba(226, 232, 240, 0.8);
   --vireza-surface: #ffffff;
   --vireza-surface-hover: #f8fafc;
 }
 
+/* Header Outer Container */
 .navbar-header {
   position: sticky;
-  top: 0px;
-  z-index: 100;
+  top: -10;
+  z-index: 1000;
   width: 100%;
-  max-width: 100%;
-  margin:-20px 0 0 0 ;
-  padding: 0 40px;
+  padding: 0px 40px;
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 24px;
+  background: transparent;
 }
 
+/* Standalone Logo (Left) */
 .standalone-logo {
   display: flex;
   align-items: center;
   text-decoration: none;
   flex-shrink: 0;
   transition: opacity 0.2s ease;
-  margin: 0;
+  margin-right: auto; /* Options ko extreme right side push karega */
 }
 
 .standalone-logo:hover {
   opacity: 0.85;
 }
 
+/* Original Large Logo Size */
 .logo-img {
-  height: 100px; 
+  height: 100px; /* Aapka original logo size */
   width: auto;
   object-fit: contain;
 }
 
+/* Floating Options Pill Container (Right) */
 .navbar-container {
-  flex: initial;
-  height: 64px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 24px;
-  gap: 20px;
-  background: rgba(255, 255, 255, 0.9);
+  height: 56px;
+  padding: 0 16px;
+  gap: 16px;
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(12px);
   border: 1px solid var(--vireza-border);
-  border-radius: 24px;
-  box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.08);
+  border-radius: 99px;
+  box-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.08);
+  margin-left: auto;
 }
 
 .navbar-links {
   display: flex;
   align-items: center;
-  gap: 8px;
-  flex: 1;
-  justify-content: flex-start;
+  gap: 4px;
 }
 
 .nav-link {
@@ -75,8 +77,8 @@
   font-weight: 500;
   color: var(--vireza-slate);
   text-decoration: none;
-  padding: 8px 14px;
-  border-radius: 8px;
+  padding: 8px 12px;
+  border-radius: 20px;
   font-family: inherit;
   transition: all 0.2s ease;
   white-space: nowrap;
@@ -91,8 +93,8 @@
 .chevron {
   transition: transform 0.2s ease;
   color: var(--vireza-slate);
-  width: 12px;
-  height: 12px;
+  width: 10px;
+  height: 10px;
 }
 
 .nav-link:hover .chevron {
@@ -115,34 +117,35 @@
 
 .nav-dropdown-menu {
   position: absolute;
-  top: calc(100% + 8px);
-  left: 50%;
-  transform: translateX(-50%);
+  top: calc(100% + 12px);
+  left: 0;
   background: var(--vireza-surface);
   border: 1px solid var(--vireza-border);
   border-radius: 12px;
-  box-shadow: 0 8px 24px -4px rgba(15, 23, 42, 0.12);
-  min-width: 220px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12);
+  min-width: 200px;
   padding: 8px;
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   animation: dropdown-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  z-index: 1000;
+  pointer-events: auto;
 }
 
 @keyframes dropdown-in {
   from {
     opacity: 0;
-    transform: translateX(-50%) translateY(-8px) scale(0.95);
+    transform: translateY(-8px) scale(0.96);
   }
   to {
     opacity: 1;
-    transform: translateX(-50%) translateY(0) scale(1);
+    transform: translateY(0) scale(1);
   }
 }
 
 .nav-dropdown-item {
-  padding: 10px 12px;
+  padding: 8px 12px;
   border-radius: 8px;
   font-size: 13px;
   font-weight: 500;
@@ -168,6 +171,8 @@
   color: var(--vireza-slate);
   font-weight: 500;
   font-size: 14px;
+  text-decoration: none;
+  padding: 8px 12px;
   transition: color 0.2s ease;
 }
 
@@ -183,7 +188,7 @@
   color: #ffffff;
   font-size: 14px;
   font-weight: 600;
-  padding: 10px 24px;
+  padding: 8px 20px;
   border-radius: 99px;
   text-decoration: none;
   transition: all 0.2s ease;
@@ -196,10 +201,6 @@
   background: var(--vireza-indigo-dark);
   transform: translateY(-1px);
   box-shadow: 0 6px 16px -2px rgba(37, 99, 235, 0.4);
-}
-
-.cta-button:active {
-  transform: translateY(0px);
 }
 
 .mobile-toggle {
@@ -235,12 +236,14 @@
   transform: translateY(-7px) rotate(-45deg);
 }
 
-.mobile-menu {
-  display: none;
-}
-
 @media (max-width: 960px) {
-  .navbar-links {
+  .navbar-header {
+    padding: 12px 16px;
+  }
+
+  .navbar-links,
+  .nav-login,
+  .navbar-container .cta-button {
     display: none;
   }
 
@@ -249,19 +252,33 @@
   }
 
   .navbar-container {
-    padding: 0 16px;
+    padding: 0 12px;
   }
 
   .mobile-menu {
     position: absolute;
-    top: 100%;
-    left: 0;
-    right: 0;
+    top: calc(100% + 8px);
+    left: 16px;
+    right: 16px;
     display: flex;
     flex-direction: column;
-    padding: 16px 20px;
+    padding: 16px;
     background: var(--vireza-surface);
+    border: 1px solid var(--vireza-border);
     border-radius: 16px;
-    box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+    gap: 12px;
+  }
+
+  .mobile-menu a {
+    text-decoration: none;
+    color: var(--vireza-navy);
+    font-weight: 500;
+    font-size: 15px;
+  }
+
+  .cta-button-mobile {
+    width: 100%;
+    margin-top: 4px;
   }
 }

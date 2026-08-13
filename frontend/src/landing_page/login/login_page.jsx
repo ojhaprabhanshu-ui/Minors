@@ -91,7 +91,7 @@ const Login = () => {
                 value={formdata.email}
                 onChange={onchange}
                 placeholder="name@company.com"
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3.5 text-base placeholder:text-base text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {error.email && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{error.email}</p>
@@ -109,7 +109,7 @@ const Login = () => {
                 value={formdata.password}
                 onChange={onchange}
                 placeholder="Enter your password"
-                className="w-full bg-white border border-slate-200 rounded-lg px-4 py-3.5 text-base placeholder:text-base text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {error.password && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{error.password}</p>
@@ -127,7 +127,7 @@ const Login = () => {
 
             <button
               type="submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-2 text-sm py-2.5 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-2 text-sm py-1 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
             >
               Sign In
             </button>

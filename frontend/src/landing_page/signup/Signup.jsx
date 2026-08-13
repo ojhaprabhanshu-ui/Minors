@@ -146,7 +146,7 @@ const Signup = () => {
                 value={formdata.fullname}
                 onChange={handleChange}
                 placeholder="John Doe"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {errors.fullname && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.fullname}</p>
@@ -164,7 +164,7 @@ const Signup = () => {
                 value={formdata.email}
                 onChange={handleChange}
                 placeholder="name@company.com"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {errors.email && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.email}</p>
@@ -182,7 +182,7 @@ const Signup = () => {
                 value={formdata.phone}
                 onChange={handleChange}
                 placeholder="10-digit phone number"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {errors.phone && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.phone}</p>
@@ -200,7 +200,7 @@ const Signup = () => {
                 value={formdata.password}
                 onChange={handleChange}
                 placeholder="8 - 15 characters"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {errors.password && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.password}</p>
@@ -218,7 +218,7 @@ const Signup = () => {
                 value={formdata.confirmpass}
                 onChange={handleChange}
                 placeholder="Re-enter password"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {errors.confirmpass && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.confirmpass}</p>
@@ -237,7 +237,7 @@ const Signup = () => {
                 />
                 <label
                   htmlFor="agreeterms"
-                  className="ml-2 text-xs text-slate-600 cursor-pointer select-none"
+                  className="ml-2 text-xs text-slate-600 cursor-pointer select-none px-3"
                 >
                   I agree to the{" "}
                   <a href="#terms" className="text-amber-800 font-semibold hover:underline">
@@ -252,7 +252,7 @@ const Signup = () => {
 
             <button
               type="submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-2.5 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-1 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
             >
               Create Account
             </button>

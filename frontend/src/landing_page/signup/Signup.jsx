@@ -115,10 +115,7 @@ const Signup = () => {
 
   return (
     <div className="h-screen w-full overflow-hidden flex items-stretch">
-      
       <div className="bg-slate-50/90 backdrop-blur-md shadow-2xl px-10 py-10 h-full flex flex-col items-center justify-between border-r border-slate-200/80 z-10 shrink-0 w-[460px] overflow-y-auto custom-scrollbar">
-        
-        
         <div className="w-full max-w-sm pt-4">
           <h1 className="text-3xl font-serif text-slate-900 mt-4 leading-snug">
             Let's Create an <br />
@@ -128,7 +125,7 @@ const Signup = () => {
           <p className="text-sm text-slate-500 mt-2">
             Already have an account?{" "}
             <a
-              href="#login"
+              href="/login"
               className="text-amber-800 font-semibold hover:text-amber-900 underline underline-offset-4 transition-colors"
             >
               Log In
@@ -136,10 +133,8 @@ const Signup = () => {
           </p>
         </div>
 
-        
         <form onSubmit={onsubmit} className="w-full max-w-sm my-auto py-4">
           <div className="flex flex-col gap-3.5">
-            
             <div className="w-full">
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Full Name
@@ -151,14 +146,13 @@ const Signup = () => {
                 value={formdata.fullname}
                 onChange={handleChange}
                 placeholder="John Doe"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.fullname && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.fullname}</p>
               )}
             </div>
 
-            {/* Email */}
             <div className="w-full">
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Email Address
@@ -170,14 +164,13 @@ const Signup = () => {
                 value={formdata.email}
                 onChange={handleChange}
                 placeholder="name@company.com"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.email && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.email}</p>
               )}
             </div>
 
-            
             <div className="w-full">
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Contact Number
@@ -189,14 +182,13 @@ const Signup = () => {
                 value={formdata.phone}
                 onChange={handleChange}
                 placeholder="10-digit phone number"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.phone && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.phone}</p>
               )}
             </div>
 
-            
             <div className="w-full">
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Password
@@ -208,14 +200,13 @@ const Signup = () => {
                 value={formdata.password}
                 onChange={handleChange}
                 placeholder="8 - 15 characters"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.password && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.password}</p>
               )}
             </div>
 
-            
             <div className="w-full">
               <label className="block text-xs font-semibold text-slate-600 mb-1">
                 Confirm Password
@@ -227,14 +218,13 @@ const Signup = () => {
                 value={formdata.confirmpass}
                 onChange={handleChange}
                 placeholder="Re-enter password"
-                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.confirmpass && (
                 <p className="text-rose-500 text-xs mt-1 font-medium">{errors.confirmpass}</p>
               )}
             </div>
 
-            
             <div className="w-full mt-1">
               <div className="flex items-center">
                 <input
@@ -260,7 +250,6 @@ const Signup = () => {
               )}
             </div>
 
-            
             <button
               type="submit"
               className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-2.5 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
@@ -276,7 +265,7 @@ const Signup = () => {
           </p>
         </div>
       </div>
-      
+
       <div className="grow h-full bg-gray-100 flex items-center justify-center overflow-hidden">
         <img
           src={background}

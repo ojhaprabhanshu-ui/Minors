@@ -5,8 +5,8 @@ import Login from "./landing_page/login/login_page";
 function App() {
   return (
     <>
-    <Login /> 
-  
+    <Signup/>
+    <Login/>
     </>
   );
 }

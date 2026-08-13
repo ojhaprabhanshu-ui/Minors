@@ -1,6 +1,5 @@
-import { useState } from "react";
-import React from "react";
-import background from "../../resources/images/registration-bg.avif"
+import React, { useState } from "react";
+import background from "../../resources/images/registration2.png";
 
 const Signup = () => {
   const [formdata, setFormdata] = useState({
@@ -49,25 +48,25 @@ const Signup = () => {
     };
 
     if (!formdata.fullname.trim()) {
-      newErrors.fullname = "Fill this field";
+      newErrors.fullname = "Full Name is required";
       isvalid = false;
     }
 
     if (!formdata.email.trim()) {
-      newErrors.email = "Fill this field";
+      newErrors.email = "Email address is required";
       isvalid = false;
     }
 
     if (!formdata.phone.trim()) {
-      newErrors.phone = "Fill this field";
+      newErrors.phone = "Phone number is required";
       isvalid = false;
     } else if (formdata.phone.trim().length !== 10) {
-      newErrors.phone = "Contact must be 10 digits";
+      newErrors.phone = "Contact must be exactly 10 digits";
       isvalid = false;
     }
 
     if (!formdata.password.trim()) {
-      newErrors.password = "Fill this field";
+      newErrors.password = "Password is required";
       isvalid = false;
     } else if (
       !(
@@ -75,12 +74,12 @@ const Signup = () => {
         formdata.password.trim().length <= 15
       )
     ) {
-      newErrors.password = "Password must be 8 to 15 digits long";
+      newErrors.password = "Password must be 8 to 15 characters long";
       isvalid = false;
     }
 
     if (!formdata.confirmpass.trim()) {
-      newErrors.confirmpass = "Fill this field";
+      newErrors.confirmpass = "Please confirm your password";
       isvalid = false;
     } else if (formdata.password !== formdata.confirmpass) {
       newErrors.confirmpass = "Passwords do not match";
@@ -88,14 +87,12 @@ const Signup = () => {
     }
 
     if (!formdata.agreeterms) {
-      newErrors.agreeterms = "You must agree to the terms";
+      newErrors.agreeterms = "You must accept the terms";
       isvalid = false;
     }
 
     setErrors(newErrors);
     if (!isvalid) return;
-
-    console.log("Form submitted successfully:", formdata);
 
     setFormdata({
       fullname: "",
@@ -117,137 +114,175 @@ const Signup = () => {
   };
 
   return (
-    <div className="h-screen w-screen bg-center bg-cover flex items-center justify-start"
-      style={{ backgroundImage: `url(${background})` }}>
-      <div className="bg-white shadow-xl px-10 py-10 h-full flex flex-col items-center justify-center gap-6 border border-gray-200">
-        <div className="h-max w-max p-10 flex flex-col items-start justify-center gap-5">
-          <h1 className="text-3xl font-serif text-gray-800">
-            Let's Create an <br /> Account for You .
+    <div className="h-screen w-full overflow-hidden flex items-stretch">
+      
+      <div className="bg-slate-50/90 backdrop-blur-md shadow-2xl px-10 py-10 h-full flex flex-col items-center justify-between border-r border-slate-200/80 z-10 shrink-0 w-[460px] overflow-y-auto custom-scrollbar">
+        
+        
+        <div className="w-full max-w-sm pt-4">
+          <h1 className="text-3xl font-serif text-slate-900 mt-4 leading-snug">
+            Let's Create an <br />
+            <span className="text-slate-800 font-medium">Account for You.</span>
           </h1>
-          <div className="text-start text-sm text-gray-600">
+
+          <p className="text-sm text-slate-500 mt-2">
             Already have an account?{" "}
             <a
               href="#login"
-              className="text-blue-600 font-medium hover:underline"
+              className="text-amber-800 font-semibold hover:text-amber-900 underline underline-offset-4 transition-colors"
             >
               Log In
             </a>
-          </div>
-          <form onSubmit={onsubmit}>
-            <div className="flex flex-col items-center justify-center gap-3">
-              {/* Full Name */}
-              <div>
-                <input
-                  type="text"
-                  name="fullname"
-                  id="fullname"
-                  value={formdata.fullname}
-                  onChange={handleChange}
-                  placeholder="Enter your Name"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                {errors.fullname && (
-                  <p className="text-red-500 text-sm">{errors.fullname}</p>
-                )}
-              </div>
-
-              {/* Email */}
-              <div>
-                <input
-                  type="email"
-                  name="email"
-                  id="email"
-                  value={formdata.email}
-                  onChange={handleChange}
-                  placeholder="Enter your Email"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                {errors.email && (
-                  <p className="text-red-500 text-sm">{errors.email}</p>
-                )}
-              </div>
-
-              {/* Phone */}
-              <div>
-                <input
-                  type="tel"
-                  name="phone"
-                  id="phone"
-                  value={formdata.phone}
-                  onChange={handleChange}
-                  placeholder="Enter your Contact"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                {errors.phone && (
-                  <p className="text-red-500 text-sm">{errors.phone}</p>
-                )}
-              </div>
-
-              {/* Password */}
-              <div>
-                <input
-                  type="password"
-                  name="password"
-                  id="password"
-                  value={formdata.password}
-                  onChange={handleChange}
-                  placeholder="Set your Password"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                {errors.password && (
-                  <p className="text-red-500 text-sm">{errors.password}</p>
-                )}
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <input
-                  type="password"
-                  name="confirmpass"
-                  id="confirmpass"
-                  value={formdata.confirmpass}
-                  onChange={handleChange}
-                  placeholder="Confirm your Password"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                {errors.confirmpass && (
-                  <p className="text-red-500 text-sm">{errors.confirmpass}</p>
-                )}
-              </div>
-
-              {/* Checkbox */}
-              <div className="w-full flex flex-col items-start px-1 text-sm">
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    name="agreeterms"
-                    id="agreeterms"
-                    checked={formdata.agreeterms}
-                    onChange={handleChange}
-                  />
-                  <label htmlFor="agreeterms" className="ml-2 text-gray-700">
-                    I agree to the{" "}
-                    <span className="text-blue-600 underline cursor-pointer">
-                      Terms & Conditions
-                    </span>
-                  </label>
-                </div>
-                {errors.agreeterms && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.agreeterms}
-                  </p>
-                )}
-              </div>
-
-              <button
-                type="submit"
-                className="bg-black text-white rounded-md mt-2 text-md px-25 py-1 font-medium transition-transform duration-150 active:scale-95 hover:bg-gray-800"
-              >
-                Submit
-              </button>
-            </div>
-          </form>
+          </p>
         </div>
+
+        
+        <form onSubmit={onsubmit} className="w-full max-w-sm my-auto py-4">
+          <div className="flex flex-col gap-3.5">
+            
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Full Name
+              </label>
+              <input
+                type="text"
+                name="fullname"
+                id="fullname"
+                value={formdata.fullname}
+                onChange={handleChange}
+                placeholder="John Doe"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {errors.fullname && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.fullname}</p>
+              )}
+            </div>
+
+            {/* Email */}
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                value={formdata.email}
+                onChange={handleChange}
+                placeholder="name@company.com"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {errors.email && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.email}</p>
+              )}
+            </div>
+
+            
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Contact Number
+              </label>
+              <input
+                type="tel"
+                name="phone"
+                id="phone"
+                value={formdata.phone}
+                onChange={handleChange}
+                placeholder="10-digit phone number"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {errors.phone && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.phone}</p>
+              )}
+            </div>
+
+            
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                value={formdata.password}
+                onChange={handleChange}
+                placeholder="8 - 15 characters"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {errors.password && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.password}</p>
+              )}
+            </div>
+
+            
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Confirm Password
+              </label>
+              <input
+                type="password"
+                name="confirmpass"
+                id="confirmpass"
+                value={formdata.confirmpass}
+                onChange={handleChange}
+                placeholder="Re-enter password"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {errors.confirmpass && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.confirmpass}</p>
+              )}
+            </div>
+
+            
+            <div className="w-full mt-1">
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  name="agreeterms"
+                  id="agreeterms"
+                  checked={formdata.agreeterms}
+                  onChange={handleChange}
+                  className="w-4 h-4 rounded border-slate-300 text-amber-800 focus:ring-amber-700 cursor-pointer accent-amber-900"
+                />
+                <label
+                  htmlFor="agreeterms"
+                  className="ml-2 text-xs text-slate-600 cursor-pointer select-none"
+                >
+                  I agree to the{" "}
+                  <a href="#terms" className="text-amber-800 font-semibold hover:underline">
+                    Terms & Conditions
+                  </a>
+                </label>
+              </div>
+              {errors.agreeterms && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.agreeterms}</p>
+              )}
+            </div>
+
+            
+            <button
+              type="submit"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-2.5 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
+            >
+              Create Account
+            </button>
+          </div>
+        </form>
+
+        <div className="w-full max-w-sm text-center pb-2">
+          <p className="text-xs text-slate-400">
+            &copy; {new Date().getFullYear()} Your Brand. All rights reserved.
+          </p>
+        </div>
+      </div>
+      
+      <div className="grow h-full bg-gray-100 flex items-center justify-center overflow-hidden">
+        <img
+          src={background}
+          alt="Registration Background"
+          className="w-full h-full object-cover object-center"
+        />
       </div>
     </div>
   );

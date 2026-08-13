@@ -1,7 +1,7 @@
-import React from "react";
-import { useState } from "react";
+import React, { useState } from "react";
+import background from "../../resources/images/registration2.png";
 
-const login = () => {
+const Login = () => {
   const [formdata, setformdata] = useState({
     email: "",
     password: "",
@@ -13,20 +13,17 @@ const login = () => {
   });
 
   const onchange = (elem) => {
-    const { name, value, type } = elem.target;
-    let val = value;
+    const { name, value } = elem.target;
 
-    setformdata((formdata) => ({
-      ...formdata,
-      [name]: val,
+    setformdata((prevData) => ({
+      ...prevData,
+      [name]: value,
     }));
 
-    seterror((error) => ({
-      ...error,
+    seterror((prevError) => ({
+      ...prevError,
       [name]: "",
     }));
-    console.log(elem.target.value);
-
   };
 
   const onsubmit = (elem) => {
@@ -36,101 +33,135 @@ const login = () => {
       email: "",
       password: "",
     };
+
     if (!formdata.email.trim()) {
-      newErrors.email = "Fill this field";
+      newErrors.email = "Email address is required";
       isvalid = false;
     }
     if (!formdata.password.trim()) {
-      newErrors.password = "Fill this field";
+      newErrors.password = "Password is required";
       isvalid = false;
     }
 
     seterror(newErrors);
-    if(!isvalid) return ;
+    if (!isvalid) return;
 
     setformdata({
-       email: "",
+      email: "",
       password: "",
     });
 
     seterror({
-       email: "",
+      email: "",
       password: "",
     });
-    console.log("this is the new value in formdata" , formdata);
   };
 
   return (
-    <div className="bg-gray-500 h-screen w-screen bg-center bg-cover   flex items-center justify-start">
-      <div className="bg-white shadow-xl px-10 py-20 h-full flex flex-col items-center justify-start gap-6 border border-gray-200">
-        <div className=" h-max w-max p-10 flex flex-col items-start justify-center gap-5">
-         
-            <h1 className="text-3xl font-serif text-gray-800">
-              {" "}
-              Welcome Back <br /> Log in to continue.
-            </h1>
-            <div className="  text-start  text-sm  text-gray-600">
-              Don't have an account?{" "}
-              <a
-                href="#Signup"
-                className="text-blue-600 font-medium hover:underline"
-              >
-                Register Now
-              </a>
+    <div className="h-screen w-full overflow-hidden flex items-stretch">
+      
+      <div className="bg-slate-50/90 backdrop-blur-md shadow-2xl px-10 py-10 h-full flex flex-col items-center justify-between border-r border-slate-200/80 z-10 shrink-0 w-[460px] overflow-y-auto custom-scrollbar">
+        
+        
+        <div className="w-full max-w-sm pt-4">
+          <span className="text-xs font-bold uppercase tracking-wider text-amber-800/80 bg-amber-100/60 px-3 py-1 rounded-full">
+            Welcome Back
+          </span>
+          <h1 className="text-3xl font-serif text-slate-900 mt-4 leading-snug">
+            Welcome Back <br />
+            <span className="text-slate-800 font-medium">Log in to continue.</span>
+          </h1>
+
+          <p className="text-sm text-slate-500 mt-2">
+            Don't have an account?{" "}
+            <a
+              href="#Signup"
+              className="text-amber-800 font-semibold hover:text-amber-900 underline underline-offset-4 transition-colors"
+            >
+              Register Now
+            </a>
+          </p>
+        </div>
+
+        
+        <form onSubmit={onsubmit} className="w-full max-w-sm my-auto py-4">
+          <div className="flex flex-col gap-4">
+            
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Email Address
+              </label>
+              <input
+                type="email"
+                name="email"
+                id="email"
+                value={formdata.email}
+                onChange={onchange}
+                placeholder="name@company.com"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {error.email && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{error.email}</p>
+              )}
             </div>
 
-          <form onSubmit={onsubmit}>
-            <div className="flex flex-col items-center justify-center gap-3">
-              <div>
-                <input
-                  type="text"
-                  name="email"
-                  id="email"
-                  value={formdata.email}
-                  onChange={onchange}
-                  placeholder="Enter your Email"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                {error.email && (
-                  <p className="text-red-500 text-sm">{error.email}</p>
-                )}
-              </div>
-              <div>
-                <input
-                  type="text"
-                  name="password"
-                  id="password"
-                  value={formdata.password}
-                  onChange={onchange}
-                  placeholder="Enter your Password"
-                  className="border-gray-300 border-2 rounded-md px-8 py-1 text-md outline-none text-gray-800 focus:border-blue-500"
-                />
-                 {error.password && (
-                  <p className="text-red-500 text-sm">{error.password}</p>
-                )}
-              </div>
-               <div className="  text-end  text-sm w-full text-gray-600">
-              
+            
+            <div className="w-full">
+              <label className="block text-xs font-semibold text-slate-600 mb-1">
+                Password
+              </label>
+              <input
+                type="password"
+                name="password"
+                id="password"
+                value={formdata.password}
+                onChange={onchange}
+                placeholder="Enter your password"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
+              />
+              {error.password && (
+                <p className="text-rose-500 text-xs mt-1 font-medium">{error.password}</p>
+              )}
+            </div>
+
+            
+            <div className="text-end text-xs w-full">
               <a
                 href="#forgotpassword"
-                className="text-blue-600 font-medium hover:underline"
+                className="text-amber-800 font-semibold hover:text-amber-900 hover:underline transition-colors"
               >
                 Forgot Password?
               </a>
             </div>
-              <button
-                type="submit"
-                className="bg-black text-white rounded-md mt-2 text-md px-25 py-1 font-medium transition-transform duration-150 active:scale-95 hover:bg-gray-800"
-              >
-                Submit
-              </button>
-            </div>
-          </form>
-          
+
+            
+            <button
+              type="submit"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-2 text-sm py-2.5 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
+            >
+              Sign In
+            </button>
+          </div>
+        </form>
+
+        
+        <div className="w-full max-w-sm text-center pb-2">
+          <p className="text-xs text-slate-400">
+            &copy; {new Date().getFullYear()} Your Brand. All rights reserved.
+          </p>
         </div>
+      </div>
+
+      
+      <div className="grow h-full bg-gray-100 flex items-center justify-center overflow-hidden">
+        <img
+          src={background}
+          alt="Login Background"
+          className="w-full h-full object-cover object-center"
+        />
       </div>
     </div>
   );
 };
 
-export default login;
+export default Login;

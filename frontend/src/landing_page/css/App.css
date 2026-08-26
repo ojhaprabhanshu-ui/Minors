@@ -1,0 +1,32 @@
+* {
+  margin: 0;
+  padding:0;
+  box-sizing: border-box;
+}
+
+html, body ,#root{
+  height: 100%;
+  width: 100%;
+  overflow-x: hidden;
+}
+
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+.main-content {
+  flex: 1;
+}
+.step-card {
+  background-color: #f8fafc;
+  border-radius: 16px;
+  border: 1px solid #f1f5f9;
+  transition: background-color 0.3s ease, transform 0.2s ease;
+}
+
+.step-card:hover {
+  background-color: #e6f7ef; /* Color on hover */
+  cursor: pointer;
+}

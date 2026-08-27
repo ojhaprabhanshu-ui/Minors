@@ -87,8 +87,10 @@ export default function Navbar() {
   }, []);
 
   return (
-    <header className={`navbar ${scrolled ? "navbar-scrolled" : ""}`}>
-      <div className="navbar-inner">
+    // <header className={`navbar ${scrolled ? "navbar-scrolled" : ""}`}>
+      <header className={`navbar-header ${scrolled ? "navbar-scrolled" : ""}`}>
+
+      <div className="navbar-container">
         {/* Logo */}
         <a href="/" className="navbar-logo">
           <svg

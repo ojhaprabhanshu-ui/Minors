@@ -4,7 +4,7 @@ import Navbar from "./landing_page/Navbar";
 import Footer from "./landing_page/Footer";
 import Homepage from "./landing_page/home/Homepage";
 import ResumeATSpage from "./landing_page/resume/ResumeATSpage";
-import "./landing_page/css/App.css";
+import "./landing_page/css/App.css";     
 import Signup from "./landing_page/signup/Signup";
 import Login from "./landing_page/login/login_page";
 

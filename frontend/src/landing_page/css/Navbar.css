@@ -20,22 +20,20 @@
   justify-content: space-between;
   gap: 24px;
 
-  /* Glassmorphism Blur Effect across the entire top bar */
-  background: rgba(255, 255, 255, 0.65);
+  background: #ffffff;
   backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
 
   border-bottom: none;
-  box-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.04);
-  /* Optional subtle dynamic shadow on scroll */
+  box-shadow: none;
   transition:
     background 0.3s ease,
     box-shadow 0.3s ease;
 
 }
 .navbar-header.navbar-scrolled {
-  background: rgba(255, 255, 255, 0.85);
-  box-shadow: 0 4px 20px -5px rgba(15, 23, 42, 0.05);
+  background: #ffffff;
+  box-shadow: none;
 }
 
 /* Standalone Logo (Left) */
@@ -52,9 +50,8 @@
   opacity: 0.85;
 }
 
-/* Original Large Logo Size */
 .logo-img {
-  height: 100px; /* Aapka original logo size */
+  height: 72px;
   width: auto;
   object-fit: contain;
 }
@@ -64,12 +61,14 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  height: 52px;
-  padding: 0 16px;
+  height: 48px;
+  padding: 0 14px;
   gap: 16px;
 
-  /* Semi-transparent inner pill styling */
-  background: var(--vireza-surface);
+  /* Keep the options container clear so the header glow stays outside it. */
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border: 1px solid var(--vireza-border);
   border-radius: 99px;
   box-shadow: 0 4px 16px -2px rgba(15, 23, 42, 0.06);

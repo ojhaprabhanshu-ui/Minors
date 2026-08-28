@@ -7,7 +7,7 @@ import resume_5 from "../../../resources/images/resume_img_5.png";
 
 const Page_2 = () => {
   return (
-    <div className="bg-slate-50/50 text-slate-900 w-full min-h-screen px-4 py-12 flex flex-col items-center overflow-x-hidden selection:bg-blue-500 selection:text-white">
+    <section className="bg-white text-slate-900 w-full px-5 py-16 sm:px-8 sm:py-20 lg:px-10 flex flex-col items-center overflow-x-hidden selection:bg-blue-500 selection:text-white">
       
       {/* Dynamic Background Glows */}
       <div className="relative w-full max-w-7xl">
@@ -15,45 +15,8 @@ const Page_2 = () => {
         <div className="absolute top-0 -right-4 w-72 h-72 bg-indigo-400 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-pulse pointer-events-none" />
       </div>
 
-      {/* Hero Header Section */}
-      <div className="relative flex flex-col items-center text-center py-16 px-4 w-full max-w-4xl gap-6">
-        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-50 border border-blue-200/60 text-blue-600 text-xs font-semibold tracking-wide uppercase">
-          <span className="w-2 h-2 rounded-full bg-blue-500 animate-ping" />
-          AI-Powered Career Engine
-        </div>
-
-        <h1 className="text-4xl sm:text-6xl italic font-semibold font-black tracking-tight leading-[1.15]">
-          Build a Job-Ready Resume in <span className="bg-gradient-to-r from-blue-600 via-indigo-600 to-sky-500 bg-clip-text text-transparent">Minutes</span>
-        </h1>
-
-        <p className="text-slate-600 text-base sm:text-md max-w-2xl leading-relaxed">
-          Craft tailored, ATS-compliant resumes effortlessly with intelligent layout controls, automatic skill extraction, and instant optimizations.
-        </p>
-
-        <div className="flex flex-col sm:flex-row gap-4 items-center mt-2 w-full sm:w-auto">
-          <button className="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-medium px-8 py-2 rounded-2xl shadow-lg shadow-blue-500/25 active:scale-95 transition-all cursor-pointer">
-            Build My Resume Fast
-          </button>
-          <button className="w-full sm:w-auto bg-white hover:bg-slate-100 text-slate-700 border border-slate-200 font-medium px-8 py-2 rounded-2xl active:scale-95 transition-all cursor-pointer">
-            View Live Examples
-          </button>
-        </div>
-
-        {/* Quick Social Proof */}
-        <div className="flex items-center gap-6 mt-6 text-xs font-medium text-slate-500">
-          <div className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-500 fill-current" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
-            No Credit Card Required
-          </div>
-          <div className="flex items-center gap-1.5">
-            <svg className="w-4 h-4 text-emerald-500 fill-current" viewBox="0 0 20 20"><path d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"/></svg>
-            98.4% ATS Compatibility
-          </div>
-        </div>
-      </div>
-
       {/* Feature Section 1 - Showcase Hero Image */}
-      <div className="px-4 py-8 flex flex-col md:flex-row items-center justify-between w-full max-w-7xl gap-12 bg-white rounded-3xl border border-slate-200/80 p-8 shadow-xl shadow-slate-100/50">
+      <div className="flex flex-col md:flex-row items-center justify-between w-full max-w-7xl gap-10 lg:gap-12 bg-white rounded-3xl border border-slate-200/80 p-6 sm:p-8 lg:p-10 shadow-xl shadow-slate-100/50">
         <div className="w-full md:w-1/2 flex flex-col gap-4 items-start order-2 md:order-1">
           <span className="text-blue-600 text-xs font-bold uppercase tracking-widest bg-blue-50 px-3 py-1 rounded-md">
             Engineered For Results
@@ -79,7 +42,7 @@ const Page_2 = () => {
       </div>
 
       {/* 3 Steps Bento Grid */}
-      <div className="py-16 w-full max-w-7xl">
+      <div className="py-16 sm:py-20 w-full max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-3xl font-bold tracking-tight">3 Simple Steps to Success</h2>
           <p className="text-slate-500 text-sm mt-2">Designed to keep your workflow fast and focus-driven.</p>
@@ -128,7 +91,7 @@ const Page_2 = () => {
       </div>
 
       {/* Feature Sections Stack */}
-      <div className="flex flex-col gap-12 w-full max-w-7xl">
+      <div className="flex flex-col gap-8 sm:gap-12 w-full max-w-7xl">
         
         {/* Feature Section 2 - Targeted Resume */}
         <div className="flex flex-col md:flex-row items-center justify-between gap-10 bg-gradient-to-br from-blue-50/50 to-indigo-50/30 p-8 sm:p-12 rounded-3xl border border-blue-100">
@@ -232,7 +195,7 @@ const Page_2 = () => {
 
       </div>
 
-    </div>
+    </section>
   );
 };
 

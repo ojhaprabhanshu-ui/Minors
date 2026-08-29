@@ -11,7 +11,7 @@ const NAV_CONFIG = [
     items: [
       { label: "Resume Builder", href: "/resume/builder" },
       { label: "Resume Templates", href: "/resume/templates" },
-      { label: "Resume Examples", href: "/resume/examples" },
+      
       { label: "Check ATS score", href: "/resumeATS" },
     ],
   },
@@ -22,17 +22,7 @@ const NAV_CONFIG = [
     items: [
       { label: "CV Builder", href: "/cv/builder" },
       { label: "CV Templates", href: "/cv/templates" },
-      { label: "CV Examples", href: "/cv/examples" },
-    ],
-  },
-  {
-    type: "dropdown",
-    id: "coverLetter",
-    label: "Cover Letter",
-    items: [
-      { label: "Cover Letter Builder", href: "/cover-letter/builder" },
-      { label: "Cover Letter Templates", href: "/cover-letter/templates" },
-      { label: "Cover Letter Examples", href: "/cover-letter/examples" },
+      
     ],
   },
   { type: "link", label: "Blog", href: "/blog" },
@@ -178,9 +168,7 @@ export default function Navbar() {
           <Link to="/resume/templates" onClick={closeMobileMenu}>
             Resume Templates
           </Link>
-          <Link to="/resume/examples" onClick={closeMobileMenu}>
-            Resume Examples
-          </Link>
+
           <Link to="/resumeATS" onClick={closeMobileMenu}>
             Check ATS Score
           </Link>
@@ -191,19 +179,9 @@ export default function Navbar() {
           <Link to="/cv/templates" onClick={closeMobileMenu}>
             CV Templates
           </Link>
-          <Link to="/cv/examples" onClick={closeMobileMenu}>
-            CV Examples
-          </Link>
+          
 
-          <Link to="/cover-letter/builder" onClick={closeMobileMenu}>
-            Cover Letter Builder
-          </Link>
-          <Link to="/cover-letter/templates" onClick={closeMobileMenu}>
-            Cover Letter Templates
-          </Link>
-          <Link to="/cover-letter/examples" onClick={closeMobileMenu}>
-            Cover Letter Examples
-          </Link>
+          
 
           <Link to="/blog" onClick={closeMobileMenu}>
             Blog
@@ -227,4 +205,4 @@ export default function Navbar() {
       )}
     </header>
   );
-}
+};

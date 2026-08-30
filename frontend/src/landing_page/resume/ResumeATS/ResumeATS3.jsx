@@ -107,7 +107,15 @@ export default function AdditionalChecksCard() {
         </div>
     
       </div>
-      <button type="button" class="btn btn-dark fs-5" style={{marginTop:"2.5rem",marginLeft:"30rem"}}>Get Your Detailed ATS Report <i class="fa-solid fa-arrow-right " style={{marginLeft:".2rem"}}></i></button>
+      <div className="text-center mt-4">
+        <button
+          type="button"
+          className="btn btn-dark fs-5 px-5 py-3 rounded-pill shadow-sm"
+          onClick={() => window.scrollTo({ top: 0, behavior: "smooth" })}
+        >
+          Get Your Detailed ATS Report <i className="fa-solid fa-arrow-right ms-2"></i>
+        </button>
+      </div>
     </div>
   );
 }

@@ -1,0 +1,29 @@
+{
+  "name": "minors",
+  "version": "1.0.0",
+  "scripts":{
+    "backend": "npm run dev --prefix backend/backend_main_server",
+    "frontend": "npm run dev --prefix frontend",
+    "dev": "concurrently \"npm run backend\" \"npm run frontend\"",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "description": "",
+  "main": "index.js",
+
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ojhaprabhanshu-ui/Minors.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/ojhaprabhanshu-ui/Minors/issues"
+  },
+  "homepage": "https://github.com/ojhaprabhanshu-ui/Minors#readme",
+  "devDependencies": {
+    "concurrently": "^10.0.5"
+
+  }
+}

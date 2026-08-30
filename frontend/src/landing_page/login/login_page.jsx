@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import background from "../../resources/images/registration2.png";
-import { Link } from "react-router-dom";  
+import { Link } from "react-router-dom";
+import axios from "axios";
 
 const Login = () => {
   const [formdata, setformdata] = useState({
@@ -12,6 +13,7 @@ const Login = () => {
     email: "",
     password: "",
   });
+  const [apiError, setApiError] = useState("");
 
   const onchange = (elem) => {
     const { name, value } = elem.target;
@@ -27,7 +29,7 @@ const Login = () => {
     }));
   };
 
-  const onsubmit = (elem) => {
+  const onsubmit = async (elem) => {
     elem.preventDefault();
     let isvalid = true;
     let newErrors = {
@@ -47,15 +49,35 @@ const Login = () => {
     seterror(newErrors);
     if (!isvalid) return;
 
-    setformdata({
-      email: "",
-      password: "",
-    });
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/api/auth/login",
+        {
+          email: formdata.email,
+          password: formdata.password,
+        },
+        {
+          withCredentials: true,
+        },
+      );
+      if (response.data.success) {
+        alert("Registration Successful!");
+        setformdata({
+          email: "",
+          password: "",
+        });
 
-    seterror({
-      email: "",
-      password: "",
-    });
+        seterror({
+          email: "",
+          password: "",
+        });
+      }
+    } catch (error) {
+      setApiError(
+        error.response?.data?.message ||
+          "Failed to register. Please try again.",
+      );
+    }
   };
 
   return (
@@ -64,7 +86,9 @@ const Login = () => {
         <div className="w-full max-w-sm pt-4">
           <h1 className="text-3xl font-serif text-slate-900 mt-4 leading-snug">
             Welcome Back <br />
-            <span className="text-slate-800 font-medium">Log in to continue.</span>
+            <span className="text-slate-800 font-medium">
+              Log in to continue.
+            </span>
           </h1>
 
           <p className="text-sm text-slate-500 mt-2">
@@ -94,7 +118,9 @@ const Login = () => {
                 className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {error.email && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{error.email}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {error.email}
+                </p>
               )}
             </div>
 
@@ -112,7 +138,9 @@ const Login = () => {
                 className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
               />
               {error.password && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{error.password}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {error.password}
+                </p>
               )}
             </div>
 

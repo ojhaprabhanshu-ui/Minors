@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import background from "../../resources/images/registration2.png";
+import axios from "axios";
 
 const Signup = () => {
   const [formdata, setFormdata] = useState({
@@ -20,6 +21,8 @@ const Signup = () => {
     agreeterms: "",
   });
 
+  const [apiError, setApiError] = useState("");
+
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
     const val = type === "checkbox" ? checked : value;
@@ -35,9 +38,10 @@ const Signup = () => {
     }));
   };
 
-  const onsubmit = (elem) => {
+  const onsubmit = async (elem) => {
     elem.preventDefault();
-    let isvalid = true;
+    setApiError("");
+
     let newErrors = {
       fullname: "",
       email: "",
@@ -47,70 +51,100 @@ const Signup = () => {
       agreeterms: "",
     };
 
+    let valid = true;
+
+    // Full Name
     if (!formdata.fullname.trim()) {
       newErrors.fullname = "Full Name is required";
-      isvalid = false;
+      valid = false;
     }
 
+    // Email
     if (!formdata.email.trim()) {
       newErrors.email = "Email address is required";
-      isvalid = false;
+      valid = false;
     }
 
+    // Phone
     if (!formdata.phone.trim()) {
       newErrors.phone = "Phone number is required";
-      isvalid = false;
+      valid = false;
     } else if (formdata.phone.trim().length !== 10) {
       newErrors.phone = "Contact must be exactly 10 digits";
-      isvalid = false;
+      valid = false;
     }
 
-    if (!formdata.password.trim()) {
+    // Password
+    if (!formdata.password) {
       newErrors.password = "Password is required";
-      isvalid = false;
-    } else if (
-      !(
-        formdata.password.trim().length >= 8 &&
-        formdata.password.trim().length <= 15
-      )
-    ) {
+      valid = false;
+    } else if (formdata.password.length < 8 || formdata.password.length > 15) {
       newErrors.password = "Password must be 8 to 15 characters long";
-      isvalid = false;
+      valid = false;
     }
 
-    if (!formdata.confirmpass.trim()) {
+    // Confirm Password
+    if (!formdata.confirmpass) {
       newErrors.confirmpass = "Please confirm your password";
-      isvalid = false;
+      valid = false;
     } else if (formdata.password !== formdata.confirmpass) {
       newErrors.confirmpass = "Passwords do not match";
-      isvalid = false;
+      valid = false;
     }
 
+    // Terms
     if (!formdata.agreeterms) {
       newErrors.agreeterms = "You must accept the terms";
-      isvalid = false;
+      valid = false;
     }
 
     setErrors(newErrors);
-    if (!isvalid) return;
 
-    setFormdata({
-      fullname: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmpass: "",
-      agreeterms: false,
-    });
+    if (!valid) {
+      console.log("Validation failed:", newErrors);
+      return;
+    }
 
-    setErrors({
-      fullname: "",
-      email: "",
-      phone: "",
-      password: "",
-      confirmpass: "",
-      agreeterms: "",
-    });
+    try {
+      const response = await axios.post(
+        "http://localhost:3000/api/auth/register",
+        {
+          fullname: formdata.fullname,
+          email: formdata.email,
+          password: formdata.password,
+          phone: formdata.phone,
+        },
+        {
+          withCredentials: true,
+        }
+      );
+
+      if (response.data.success) {
+        alert("Registration Successful!");
+        setFormdata({
+          fullname: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmpass: "",
+          agreeterms: false,
+        });
+        setErrors({
+          fullname: "",
+          email: "",
+          phone: "",
+          password: "",
+          confirmpass: "",
+          agreeterms: "",
+        });
+      }
+    } catch (error) {
+      console.error("API error:", error.response?.data || error.message);
+      setApiError(
+        error.response?.data?.message ||
+          "Failed to register. Please try again."
+      );
+    }
   };
 
   return (
@@ -134,6 +168,12 @@ const Signup = () => {
         </div>
 
         <form onSubmit={onsubmit} className="w-full max-w-sm my-auto py-4">
+          {apiError && (
+            <p className="text-rose-600 text-xs font-semibold mb-3 bg-rose-50 p-2 rounded border border-rose-200 text-center">
+              {apiError}
+            </p>
+          )}
+
           <div className="flex flex-col gap-3.5">
             <div className="w-full">
               <label className="block text-xs font-semibold text-slate-600 mb-1">
@@ -146,10 +186,12 @@ const Signup = () => {
                 value={formdata.fullname}
                 onChange={handleChange}
                 placeholder="John Doe"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.fullname && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.fullname}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {errors.fullname}
+                </p>
               )}
             </div>
 
@@ -164,10 +206,12 @@ const Signup = () => {
                 value={formdata.email}
                 onChange={handleChange}
                 placeholder="name@company.com"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.email && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.email}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {errors.email}
+                </p>
               )}
             </div>
 
@@ -182,10 +226,12 @@ const Signup = () => {
                 value={formdata.phone}
                 onChange={handleChange}
                 placeholder="10-digit phone number"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.phone && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.phone}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {errors.phone}
+                </p>
               )}
             </div>
 
@@ -200,10 +246,12 @@ const Signup = () => {
                 value={formdata.password}
                 onChange={handleChange}
                 placeholder="8 - 15 characters"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.password && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.password}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {errors.password}
+                </p>
               )}
             </div>
 
@@ -218,10 +266,12 @@ const Signup = () => {
                 value={formdata.confirmpass}
                 onChange={handleChange}
                 placeholder="Re-enter password"
-                className="w-full bg-white border border-slate-200 rounded-lg pl-6 pr-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm px-3"
+                className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm"
               />
               {errors.confirmpass && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.confirmpass}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {errors.confirmpass}
+                </p>
               )}
             </div>
 
@@ -237,22 +287,27 @@ const Signup = () => {
                 />
                 <label
                   htmlFor="agreeterms"
-                  className="ml-2 text-xs text-slate-600 cursor-pointer select-none px-3"
+                  className="ml-2 text-xs text-slate-600 cursor-pointer select-none"
                 >
                   I agree to the{" "}
-                  <a href="#terms" className="text-amber-800 font-semibold hover:underline">
+                  <a
+                    href="#terms"
+                    className="text-amber-800 font-semibold hover:underline"
+                  >
                     Terms & Conditions
                   </a>
                 </label>
               </div>
               {errors.agreeterms && (
-                <p className="text-rose-500 text-xs mt-1 font-medium">{errors.agreeterms}</p>
+                <p className="text-rose-500 text-xs mt-1 font-medium">
+                  {errors.agreeterms}
+                </p>
               )}
             </div>
 
             <button
               type="submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-1 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
+              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-2 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
             >
               Create Account
             </button>

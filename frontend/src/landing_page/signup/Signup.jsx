@@ -39,6 +39,8 @@ const Signup = () => {
   };
 
   const onsubmit = async (elem) => {
+    console.log("onsubmit is running...");
+    
     elem.preventDefault();
     setApiError("");
 

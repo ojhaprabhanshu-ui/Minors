@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 
 export default function ResumeATSResults({ result, onReset }) {
   if (!result) return null;
@@ -86,12 +87,44 @@ export default function ResumeATSResults({ result, onReset }) {
             </p>
           </div>
           <button
+            type="button"
             onClick={onReset}
             className="btn btn-outline-secondary mt-3 mt-md-0 fw-semibold px-4 py-2"
             style={{ borderRadius: "10px" }}
           >
             <i className="fa-solid fa-rotate-left me-2"></i> Check Another Resume
           </button>
+        </div>
+
+        {/* Round 1 DSA OA Banner CTA */}
+        <div
+          className="p-4 mb-5 text-white rounded-3 d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 shadow-sm"
+          style={{
+            background: "linear-gradient(135deg, #794ea1 0%, #4b226e 100%)",
+            borderRadius: "16px",
+          }}
+        >
+          <div>
+            <span className="badge bg-warning text-dark fw-bold text-uppercase mb-2" style={{ fontSize: "0.75rem" }}>
+              Next Step: Round 1 Assessment
+            </span>
+            <h4 className="fw-bold mb-1">Proceed to Round 1 — DSA Online Assessment (OA)</h4>
+            <p className="small mb-0 opacity-75">
+              Your candidate profile has been analyzed. Start your 90-minute DSA coding assessment now.
+            </p>
+          </div>
+          <Link
+            to="/oa"
+            className="btn text-white fw-bold px-4 py-3 shadow"
+            style={{
+              backgroundColor: "#00d084",
+              borderRadius: "12px",
+              whiteSpace: "nowrap",
+              fontSize: "1rem",
+            }}
+          >
+            START ROUND 1 OA <i className="fa-solid fa-arrow-right ms-2"></i>
+          </Link>
         </div>
 
         {/* Hero Score Card */}

@@ -13,11 +13,12 @@ import RTPAGE from "./landing_page/resume/ResumeTemplate/RTPAGE";
 import CVpage from "./landing_page/CV/CVpage";
 import CTpage from "./landing_page/CV/CTpage";
 import AIPage from "./landing_page/AI_interview/AIPAGE1";
+import OAMainContainer from "./landing_page/OA/OAMainContainer";
 import BlogPage from "./landing_page/Blog/Blogpage";
 
 function App() {
   const location = useLocation();
-  const hideLayout = ["/signup", "/login"].includes(location.pathname);
+  const hideLayout = ["/signup", "/login", "/oa"].includes(location.pathname);
 
   return (
     <div className="app-container">
@@ -34,8 +35,8 @@ function App() {
           <Route path="/cv/builder" element={<CVpage/>}/>
           <Route path="/cv/templates" element={<CTpage/>}/>
           <Route path="/AiInterviewcoach" element={<AIPage/>}/>
+          <Route path="/oa" element={<OAMainContainer/>}/>
           <Route path="/blog" element={<BlogPage/>}/>
-          
         </Routes>
       </main>
 

@@ -109,6 +109,11 @@ export default function ResumeATS1() {
         setResult(data);
         setError("");
         
+        // Persist ATS score & eligibility
+        localStorage.setItem("ats_score", data.ats_score);
+        localStorage.setItem("ats_eligible", data.ats_score >= 80 ? "true" : "false");
+        localStorage.setItem("ats_result", JSON.stringify(data));
+        
         setTimeout(() => {
           const resultsElem = document.getElementById("ats-results-section");
           if (resultsElem) {
@@ -131,6 +136,9 @@ export default function ResumeATS1() {
   const handleReset = () => {
     setResult(null);
     setError("");
+    localStorage.removeItem("ats_result");
+    localStorage.removeItem("ats_score");
+    localStorage.removeItem("ats_eligible");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

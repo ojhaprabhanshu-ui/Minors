@@ -63,7 +63,6 @@ const Login = () => {
         },
       );
       if (response.data.success) {
-        alert("Login Successful!");
         setformdata({
           email: "",
           password: "",

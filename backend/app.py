@@ -2,7 +2,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import uuid
 import os
+from datetime import datetime
 from dotenv import load_dotenv
+
 load_dotenv()
 
 from ats.parser import (
@@ -468,7 +470,7 @@ def oa_integrity(session_id):
     body = request.get_json() or {}
     evt = {
         "type": body.get("type", "UNKNOWN"),
-        "timestamp": body.get("timestamp", datetime.now().strftime("%H:%M:%S")),
+        "timestamp": datetime.now().strftime("%H:%M:%S"),
         "details": body.get("details", "")
     }
     session["integrityEvents"].append(evt)

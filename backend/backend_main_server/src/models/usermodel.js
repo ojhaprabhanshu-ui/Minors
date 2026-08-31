@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import bcrypt , {compare, compareSync} from "bcrypt";
+import bcrypt from "bcrypt";
 
 const UserSchema = new mongoose.Schema({
   fullname: {
@@ -12,27 +12,31 @@ const UserSchema = new mongoose.Schema({
     trim: true,
     required: [true, "password is required"],
   },
-  email: { 
+  email: {
     type: String,
-     trim: true, 
-     required: [true, "email is required"] },
+    trim: true,
+    unique: true,
+    required: [true, "email is required"],
+  },
   phone: {
     type: String,
     trim: true,
-    required: [true, "username is required"],
+    required: [true, "phone is required"],
   },
 },
 {
-    timestamps :true
+    timestamps: true
 });
 
-UserSchema.pre("save" ,function(){
-  this.password = bcrypt.hashSync(this.password , 10)
-})
+// Use async bcrypt.hash — hashSync blocks the event loop and makes signup very slow
+UserSchema.pre("save", async function() {
+  if (!this.isModified("password")) return;
+  this.password = await bcrypt.hash(this.password, 10);
+});
 
-UserSchema.methods.comparePass = function(password){
-  return bcrypt.compareSync(password , this.password)
-}
+UserSchema.methods.comparePass = async function(password) {
+  return bcrypt.compare(password, this.password);
+};
 
-const UserModel = mongoose.model("users" , UserSchema)
-export default UserModel
+const UserModel = mongoose.model("users", UserSchema);
+export default UserModel;

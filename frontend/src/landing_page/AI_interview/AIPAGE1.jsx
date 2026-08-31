@@ -26,7 +26,7 @@ function AIPage() {
   const handleStartRound = (modeName) => {
     if (!file) {
       setUploadError(true);
-      fileInputRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      fileInputRef.current?.scrollIntoView({ behavior: "smooth", block: "center" });
       return;
     }
     setUploadError(false);
@@ -34,6 +34,9 @@ function AIPage() {
     if (modeName === 'OA Round' || selectedMode === 'oa') {
       sessionStorage.setItem("ats_resume_file_name", file.name);
       navigate("/oa");
+    } else if (modeName === 'Technical Interview' || selectedMode === 'technical') {
+      sessionStorage.setItem("ats_resume_file_name", file.name);
+      navigate("/technical-interview");
     } else {
       alert(`${modeName} is coming soon! Please complete Round 1: OA Round first.`);
     }

@@ -11,9 +11,12 @@ export default function RB1() {
         
         
         <div className="flex flex-col items-start space-y-6">
-          <h1 className="text-[12vw] xl:text-[14rem] font-[1000] leading-[0.85] text-slate-950 tracking-tighter drop-shadow-sm font-sans scale-y-105 transform origin-left">
-  Your Resume. <br />
-  <span className="text-blue-600">Your Next Opportunity.</span>
+          <h1
+  className="text-[10vw] sm:text-[8vw] md:text-[6vw] lg:text-[2.5rem] xl:text-[6.5rem] font-semibold leading-[0.98] tracking-[-0.055em] text-slate-750 font-sans -translate-x-4"
+>
+  Your Resume
+  <br />
+  <span className="text-blue-600">Your Next Opportunity</span>
 </h1>
 
           <p className="text-xl sm:text-2xl text-slate-600 max-w-xl font-medium">

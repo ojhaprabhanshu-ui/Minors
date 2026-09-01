@@ -12,12 +12,25 @@ API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
 
 
 def repair_json_string(raw_text: str) -> str:
-    raw_text = re.sub(r"\n+", " ", raw_text)
-    raw_text = re.sub(r"\s+", " ", raw_text)
+    """Safely cleans up newline and whitespace issues without dangerous regex."""
+    raw_text = raw_text.replace('\r', '')
+    raw_text = re.sub(r'\n+', ' ', raw_text)
+    raw_text = re.sub(r'\s+', ' ', raw_text)
     return raw_text.strip()
 
 
 def safe_json_parse(raw_text: str):
+    """Robustly strips markdown fences and parses JSON safely."""
+    raw_text = raw_text.strip()
+    
+    # Strip markdown code block fences if the AI included them
+    if raw_text.startswith("```"):
+        first_newline = raw_text.find("\n")
+        if first_newline != -1:
+            raw_text = raw_text[first_newline:].strip()
+        if raw_text.endswith("```"):
+            raw_text = raw_text[:-3].strip()
+            
     try:
         return json.loads(raw_text)
     except json.JSONDecodeError:
@@ -25,7 +38,54 @@ def safe_json_parse(raw_text: str):
             repaired = repair_json_string(raw_text)
             return json.loads(repaired)
         except json.JSONDecodeError:
-            return {}
+            return None
+
+
+def normalize_string(text: str) -> str:
+    """Normalizes string for similarity comparison."""
+    if not text:
+        return ""
+    # Lowercase, remove punctuation, strip
+    text = re.sub(r'[^\w\s]', '', text.lower())
+    return ' '.join(text.split())
+
+
+def is_duplicate_question(new_q: str, past_qs: list, threshold=0.65) -> bool:
+    """
+    Lightweight similarity check to prevent both exact duplicates and obvious paraphrasing.
+    Uses Jaccard similarity of words.
+    """
+    norm_new = normalize_string(new_q)
+    if not norm_new:
+        return False
+        
+    words_new = set(norm_new.split())
+    
+    for past_q in past_qs:
+        norm_p = normalize_string(past_q)
+        if not norm_p:
+            continue
+            
+        # Exact substring matches (e.g. one question is entirely contained in another)
+        if norm_new in norm_p or norm_p in norm_new:
+            return True
+            
+        # Word overlap (Jaccard Similarity)
+        words_p = set(norm_p.split())
+        if not words_p or not words_new:
+            continue
+            
+        intersection = words_new.intersection(words_p)
+        union = words_new.union(words_p)
+        
+        if len(union) == 0:
+            continue
+            
+        similarity = len(intersection) / len(union)
+        if similarity >= threshold:
+            return True
+            
+    return False
 
 
 def build_resume_context(candidate_profile, resume_text):
@@ -54,51 +114,100 @@ def build_resume_context(candidate_profile, resume_text):
     return context
 
 
-def generate_first_question(candidate_profile, resume_text, previous_answers=None, questions=None):
+def generate_first_question(candidate_profile, resume_text, previous_answers=None, questions=None, previous_attempt_questions=None):
+    """
+    Generates a unique AI interview question.
+    Added `previous_attempt_questions` parameter to support Round 2 retries without breaking existing calls.
+    """
+    previous_answers = previous_answers or []
+    questions = questions or []
+    previous_attempt_questions = previous_attempt_questions or []
+    
+    question_number = len(previous_answers) + 1
+    
+    # Track all asked questions and topics across ALL attempts
+    all_asked_questions = []
+    all_asked_topics = set()
+    
+    # 1. Add questions from previous attempts
+    past_attempt_history = ""
+    if previous_attempt_questions:
+        past_attempt_history = "\nQuestions Asked in PREVIOUS Attempts (DO NOT REPEAT):\n"
+        for i, q in enumerate(previous_attempt_questions, 1):
+            q_text = q.get("question", "")
+            if q_text:
+                all_asked_questions.append(q_text)
+                past_attempt_history += f"- {q_text}\n"
+            if q.get("topic"):
+                all_asked_topics.add(q.get("topic"))
+
+    # 2. Add questions from the current attempt
+    current_answer_history = ""
+    if previous_answers:
+        current_answer_history = "\nCurrent Attempt Q&A History:\n"
+        for i, ans in enumerate(previous_answers, 1):
+            q_text = ans.get("question", "")
+            if q_text:
+                all_asked_questions.append(q_text)
+                current_answer_history += f"Q{i}: {q_text}\nCandidate A{i}: {ans.get('transcript', '')[:500]}\n"
+            
+    # Add topics from current attempt's `questions` array
+    for q in questions:
+        if q.get("topic"):
+            all_asked_topics.add(q.get("topic"))
+
+    # Logging Block
+    print("="*50)
+    print(f"ROUND 2 AI QUESTION GENERATION")
+    print("="*50)
+    print(f"Attempt: {'1' if not previous_attempt_questions else '2+'}")
+    print(f"Question Number: {question_number} / 7")
+    print(f"Total Previous Questions in History: {len(all_asked_questions)}")
+    print(f"Topics Already Covered: {list(all_asked_topics)}")
+    print("="*50)
+
     if not API_KEY:
-        return generate_fallback_question(1, candidate_profile, [])
+        print("[WARNING] No API key found. Using fallback.")
+        return generate_fallback_question(question_number, candidate_profile, list(all_asked_topics), all_asked_questions)
 
     context = build_resume_context(candidate_profile, resume_text)
-    answer_history = ""
-    asked_topics = []
-    if previous_answers:
-        answer_history = "\nPrevious questions and answers:\n"
-        for i, ans in enumerate(previous_answers[-3:], 1):
-            q_text = ans.get("question", "")
-            answer_history += f"Q{i}: {q_text}\nA{i}: {ans.get('transcript', '')[:500]}\n"
-            if questions:
-                prev_q = next((q for q in questions if q.get("id") == ans.get("questionId")), {})
-                if prev_q.get("topic"):
-                    asked_topics.append(prev_q.get("topic"))
-
-    question_number = len(previous_answers) + 1 if previous_answers else 1
-
     random_seed = hash(f"{question_number}{time.time()}{random.random()}") % 10000
 
-    prompt = f"""You are an expert technical interviewer conducting a 20-minute adaptive technical interview with EXACTLY 7 questions.
-Generate question #{question_number} based on the candidate's resume and previous answers.
+    # Determine progression phase
+    if question_number <= 2:
+        phase = "foundational concepts"
+    elif question_number <= 4:
+        phase = "follow-up based on candidate's previous answers or project specifics"
+    elif question_number <= 6:
+        phase = "advanced, deep technical edge cases"
+    else:
+        phase = "final comprehensive architecture or system design wrap-up"
 
-Resume Context:
+    prompt = f"""You are an expert technical interviewer conducting a 20-minute adaptive technical interview.
+The interview must contain EXACTLY 7 questions. You are generating question #{question_number}.
+
+CANDIDATE CONTEXT:
 {context}
-{answer_history}
+{past_attempt_history}
+{current_answer_history}
 
-Rules:
-- Ask ONE question at a time.
-- Make it personalized based on resume content.
-- Cover technical depth: resume-specific, DSA, system design, databases, OS, networks, or OOP as appropriate.
-- Question {question_number} should be {"foundational" if question_number <= 2 else "follow-up based on previous answers" if question_number <= 4 else "advanced/deeper technical" if question_number <= 6 else "final comprehensive"}.
-- Do NOT repeat previously asked topics unless drilling deeper.
-- IMPORTANT: Generate a UNIQUE question. Do not reuse the same question text.
-- Random seed for variation: {random_seed}
-- Output STRICT JSON only, no markdown, no code blocks.
+Topics Already Covered Across All Attempts: {', '.join(all_asked_topics) if all_asked_topics else 'None'}
 
-Output format:
+IMPORTANT INSTRUCTIONS:
+- Generate ONE highly relevant question based on the candidate's resume and target role.
+- Stage: This question should test {phase}.
+- UNIQUENESS GUARANTEE: You MUST NOT repeat any question from the "Previous Attempts" or "Current Attempt" lists.
+- Do NOT use different wording to ask the exact same scenario. Genuinely change the subject, constraints, or sub-skill being tested.
+- If the candidate performed poorly in a previous answer, drill down into that topic but with a genuinely NEW technical angle.
+- Random variation seed: {random_seed}
+
+Output format must be STRICT JSON only, no markdown, no code block backticks.
 {{
-  "question": "The interview question text...",
-  "topic": "Topic name",
+  "question": "The newly generated, unique interview question...",
+  "topic": "Topic Name (e.g., React, MongoDB, System Design)",
   "difficulty": "Easy|Medium|Hard",
   "questionType": "resume|dsa|system-design|concept|project",
-  "ttsText": "A natural spoken version of the question for text-to-speech"
+  "ttsText": "A natural spoken version of the question for text-to-speech engine"
 }}"""
 
     models = [
@@ -107,21 +216,42 @@ Output format:
         "qwen/qwen-2.5-coder-32b-instruct",
     ]
 
-    for model in models:
-        try:
-            url, headers, payload = build_openrouter_request(model, prompt)
-            res = requests.post(url, headers=headers, json=payload, timeout=15)
-            if res.status_code == 200:
-                data = res.json()
-                raw_text = extract_content(data)
-                parsed = safe_json_parse(raw_text)
-                if parsed and "question" in parsed:
-                    parsed["id"] = f"q{question_number}"
-                    return parsed
-        except Exception:
-            continue
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        for model in models:
+            print(f"[AI GENERATION] Trying model: {model} (Retry Loop {attempt+1}/{max_retries})")
+            try:
+                url, headers, payload = build_openrouter_request(model, prompt)
+                res = requests.post(url, headers=headers, json=payload, timeout=15)
+                
+                if res.status_code == 200:
+                    data = res.json()
+                    raw_text = extract_content(data)
+                    parsed = safe_json_parse(raw_text)
+                    
+                    if parsed and "question" in parsed:
+                        new_question_text = parsed["question"]
+                        
+                        # Backend DUPLICATE PROTECTION Check
+                        if is_duplicate_question(new_question_text, all_asked_questions):
+                            print(f"[AI DUPLICATE DETECTED] Generated question was too similar to previous question.")
+                            print(f"Rejected: {new_question_text}")
+                            continue # Try next model or next retry loop
+                            
+                        parsed["id"] = f"q{question_number}"
+                        print(f"[AI SUCCESS] Model: {model}")
+                        print(f"Question: {parsed['question']}")
+                        print(f"Topic: {parsed.get('topic')}")
+                        print(f"Difficulty: {parsed.get('difficulty')}")
+                        return parsed
+            except Exception as e:
+                print(f"[AI ERROR] Model {model} failed: {e}")
+                continue
 
-    return generate_fallback_question(question_number, candidate_profile, asked_topics)
+    print("[WARNING] AI generation failed or repeatedly generated duplicates after all retries.")
+    print("Using fallback question.")
+    return generate_fallback_question(question_number, candidate_profile, list(all_asked_topics), all_asked_questions)
 
 
 def evaluate_answer(question_text, transcript, candidate_profile, resume_text):
@@ -157,7 +287,7 @@ Also provide:
 - strengths: array of 2-3 specific strengths from the answer
 - weaknesses: array of 2-3 specific areas for improvement
 
-Output STRICT JSON only:
+Output STRICT JSON only, without markdown code fences:
 {{
   "score": 8,
   "technical_correctness": 8,
@@ -219,6 +349,7 @@ def generate_final_report(session):
 
     prompt = f"""You are an expert technical interviewer generating a final performance report.
 Generate a structured JSON report for this candidate interview session.
+Use the actual candidate evaluations to calculate the categories mathematically.
 
 Overall Score: {overall}/100
 Total Questions Answered: {len(qa_pairs)}
@@ -268,16 +399,10 @@ Output STRICT JSON only, no markdown, no code blocks:
         res = requests.post(url, headers=headers, json=payload, timeout=20)
         if res.status_code == 200:
             data = res.json()
-            raw_text = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-            raw_text = raw_text.strip()
-            if raw_text.startswith("```json"):
-                raw_text = raw_text[7:]
-            if raw_text.startswith("```"):
-                raw_text = raw_text[3:]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
-            parsed = json.loads(raw_text.strip())
-            return parsed
+            raw_text = extract_content(data)
+            parsed = safe_json_parse(raw_text)
+            if parsed:
+                return parsed
     except Exception as e:
         print(f"[Report Generator] Error: {e}")
 
@@ -365,7 +490,7 @@ def build_openrouter_request(model, prompt):
     payload = {
         "model": model,
         "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
+        "temperature": 0.4, # Slightly increased to encourage diversity
         "max_tokens": 1000,
     }
     return url, headers, payload
@@ -379,10 +504,11 @@ def extract_content(data):
     return "{}"
 
 
-def generate_fallback_question(question_number, candidate_profile, asked_topics=None):
+def generate_fallback_question(question_number, candidate_profile, asked_topics=None, all_asked_questions=None):
     skills = candidate_profile.get("skills", [])
     topic = skills[0] if skills else "programming"
     asked_topics = asked_topics or []
+    all_asked_questions = all_asked_questions or []
 
     difficulty_map = {1: "Easy", 2: "Easy", 3: "Medium", 4: "Medium", 5: "Medium", 6: "Hard", 7: "Hard"}
     difficulty = difficulty_map.get(question_number, "Medium")
@@ -460,9 +586,17 @@ def generate_fallback_question(question_number, candidate_profile, asked_topics=
         },
     ]
 
-    filtered = [q for q in all_questions if q["topic"] not in asked_topics]
+    # Filter out topics AND specific duplicate question strings
+    filtered = []
+    for q in all_questions:
+        if q["topic"] not in asked_topics and not is_duplicate_question(q["question"], all_asked_questions):
+            filtered.append(q)
+            
     if not filtered:
-        filtered = all_questions
+        # If all are exhausted, fallback to taking anything that isn't an exact duplicate
+        filtered = [q for q in all_questions if not is_duplicate_question(q["question"], all_asked_questions)]
+        if not filtered:
+            filtered = all_questions # Absolute worst case, just pick one
 
     selected = filtered[question_number % len(filtered)]
     selected["id"] = f"q{question_number}"

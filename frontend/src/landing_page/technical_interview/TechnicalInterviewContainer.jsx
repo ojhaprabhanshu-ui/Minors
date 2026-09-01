@@ -145,7 +145,7 @@ export default function TechnicalInterviewContainer() {
   };
 
   const handleBackToComplete = () => {
-    setStep("complete");
+    window.location.href = "/AiInterviewcoach";
   };
 
   if (step === "loading") {

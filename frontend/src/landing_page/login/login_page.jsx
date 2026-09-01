@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import background from "../../resources/images/registration2.png";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import axios from "axios";
 
 const Login = () => {
+  const navigate = useNavigate();
+  
   const [formdata, setformdata] = useState({
     email: "",
     password: "",
@@ -61,7 +63,7 @@ const Login = () => {
         },
       );
       if (response.data.success) {
-        alert("Registration Successful!");
+        alert("Login Successful!");
         setformdata({
           email: "",
           password: "",
@@ -71,11 +73,15 @@ const Login = () => {
           email: "",
           password: "",
         });
+
+        
+        navigate("/");
+        
       }
     } catch (error) {
       setApiError(
         error.response?.data?.message ||
-          "Failed to register. Please try again.",
+          "Failed to login. Please try again.",
       );
     }
   };
@@ -152,6 +158,12 @@ const Login = () => {
                 Forgot Password?
               </a>
             </div>
+
+            {apiError && (
+              <p className="text-rose-500 text-xs font-medium bg-rose-50 p-2 rounded">
+                {apiError}
+              </p>
+            )}
 
             <button
               type="submit"

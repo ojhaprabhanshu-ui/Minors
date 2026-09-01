@@ -2,7 +2,14 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import uuid
 import os
+import sys
+from datetime import datetime
 from dotenv import load_dotenv
+
+
+BACKEND_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.insert(0, BACKEND_ROOT)
+
 load_dotenv()
 
 from ats.parser import (
@@ -468,7 +475,7 @@ def oa_integrity(session_id):
     body = request.get_json() or {}
     evt = {
         "type": body.get("type", "UNKNOWN"),
-        "timestamp": body.get("timestamp", datetime.now().strftime("%H:%M:%S")),
+        "timestamp": datetime.now().strftime("%H:%M:%S"),
         "details": body.get("details", "")
     }
     session["integrityEvents"].append(evt)
@@ -527,6 +534,11 @@ def oa_get_result(session_id):
         }
 
     return jsonify({"status": "success", "result": session["finalResult"]})
+
+
+from technical_interview.routes import register_technical_interview_routes
+
+register_technical_interview_routes(app)
 
 
 # =========================

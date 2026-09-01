@@ -22,6 +22,7 @@ const Signup = () => {
   });
 
   const [apiError, setApiError] = useState("");
+  const [loading, setLoading] = useState(false);
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
@@ -39,8 +40,6 @@ const Signup = () => {
   };
 
   const onsubmit = async (elem) => {
-    console.log("onsubmit is running...");
-    
     elem.preventDefault();
     setApiError("");
 
@@ -102,11 +101,9 @@ const Signup = () => {
 
     setErrors(newErrors);
 
-    if (!valid) {
-      console.log("Validation failed:", newErrors);
-      return;
-    }
+    if (!valid) return;
 
+    setLoading(true);
     try {
       const response = await axios.post(
         "http://localhost:3000/api/auth/register",
@@ -118,27 +115,14 @@ const Signup = () => {
         },
         {
           withCredentials: true,
+          timeout: 10000, // 10 second timeout
         }
       );
 
-      if (response.data.success) {
-        alert("Registration Successful!");
-        setFormdata({
-          fullname: "",
-          email: "",
-          phone: "",
-          password: "",
-          confirmpass: "",
-          agreeterms: false,
-        });
-        setErrors({
-          fullname: "",
-          email: "",
-          phone: "",
-          password: "",
-          confirmpass: "",
-          agreeterms: "",
-        });
+      // backend has a typo in key: "succces" — handle both
+      if (response.data.success || response.data.succces) {
+        alert("Registration Successful! Please log in.");
+        window.location.href = "/login";
       }
     } catch (error) {
       console.error("API error:", error.response?.data || error.message);
@@ -146,6 +130,8 @@ const Signup = () => {
         error.response?.data?.message ||
           "Failed to register. Please try again."
       );
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -309,9 +295,20 @@ const Signup = () => {
 
             <button
               type="submit"
-              className="w-full bg-slate-900 hover:bg-slate-800 text-white font-medium rounded-lg mt-3 text-sm py-2 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98]"
+              disabled={loading}
+              className="w-full bg-slate-900 hover:bg-slate-800 disabled:bg-slate-500 text-white font-medium rounded-lg mt-3 text-sm py-2 shadow-md shadow-slate-900/10 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
             >
-              Create Account
+              {loading ? (
+                <>
+                  <svg className="animate-spin h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+                  </svg>
+                  Creating Account...
+                </>
+              ) : (
+                "Create Account"
+              )}
             </button>
           </div>
         </form>

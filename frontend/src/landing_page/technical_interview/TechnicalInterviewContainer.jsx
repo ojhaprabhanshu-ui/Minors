@@ -5,7 +5,7 @@ import InterviewRoom from "./InterviewRoom";
 import InterviewComplete from "./InterviewComplete";
 import TechnicalReport from "./TechnicalReport";
 
-const STORAGE_KEY = "vireza_ti_session_id";
+const STORAGE_KEY = "vireza_ti_session_id_v2";
 
 export default function TechnicalInterviewContainer() {
   const [step, setStep] = useState("loading");

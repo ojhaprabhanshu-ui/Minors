@@ -113,6 +113,14 @@ export default function ResumeATS1() {
         localStorage.setItem("ats_score", data.ats_score);
         localStorage.setItem("ats_eligible", data.ats_score >= 80 ? "true" : "false");
         localStorage.setItem("ats_result", JSON.stringify(data));
+
+        const parsedResumeText = data.resume_analysis?.parsedText || "";
+
+        sessionStorage.setItem("ats_resume_text", parsedResumeText);
+        sessionStorage.setItem(
+          "ats_skills",
+          JSON.stringify(data.resume_analysis?.skills || [])
+        );
         
         setTimeout(() => {
           const resultsElem = document.getElementById("ats-results-section");
@@ -139,6 +147,8 @@ export default function ResumeATS1() {
     localStorage.removeItem("ats_result");
     localStorage.removeItem("ats_score");
     localStorage.removeItem("ats_eligible");
+    sessionStorage.removeItem("ats_resume_text");
+    sessionStorage.removeItem("ats_skills");
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 

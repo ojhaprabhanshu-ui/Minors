@@ -4,20 +4,58 @@ import time
 import random
 import requests
 import re
+
 from dotenv import load_dotenv
+
+
+
+from .question_bank import (
+    get_resume_question,
+    get_fallback_question
+)
+
+from .skill_detector import detect_skills
+
 
 load_dotenv()
 
-API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+MISTRAL_API_KEY = os.getenv("MISTRAL_API_KEY")
 
+
+# =========================================================
+# JSON HELPERS
+# =========================================================
 
 def repair_json_string(raw_text: str) -> str:
-    raw_text = re.sub(r"\n+", " ", raw_text)
-    raw_text = re.sub(r"\s+", " ", raw_text)
+    raw_text = re.sub(
+        r"```json",
+        "",
+        raw_text,
+        flags=re.IGNORECASE
+    )
+    raw_text = re.sub(
+        r"```",
+        "",
+        raw_text
+    )
+    raw_text = re.sub(
+        r"\n+",
+        " ",
+        raw_text
+    )
+    raw_text = re.sub(
+        r"\s+",
+        " ",
+        raw_text
+    )
     return raw_text.strip()
 
 
 def safe_json_parse(raw_text: str):
+    if not raw_text:
+        return {}
+
     try:
         return json.loads(raw_text)
     except json.JSONDecodeError:
@@ -28,161 +66,767 @@ def safe_json_parse(raw_text: str):
             return {}
 
 
+# =========================================================
+# RESUME CONTEXT
+# =========================================================
+
 def build_resume_context(candidate_profile, resume_text):
+
+    candidate_profile = candidate_profile or {}
+
     skills = candidate_profile.get("skills", [])
     projects = candidate_profile.get("projects", [])
     experience = candidate_profile.get("experience", [])
     education = candidate_profile.get("education", [])
-    target_role = candidate_profile.get("targetRole", "Software Engineer")
+
+    target_role = candidate_profile.get(
+        "targetRole",
+        "Software Engineer"
+    )
 
     context = f"Candidate Target Role: {target_role}\n"
+
     if skills:
-        context += f"Skills: {', '.join(skills)}\n"
+        context += f"Skills: {', '.join(map(str, skills))}\n"
+
     if projects:
-        context += f"Projects:\n"
+        context += "Projects:\n"
+
         for p in projects[:3]:
-            context += f"- {p.get('title', 'Project')}: {p.get('description', '')}\n"
+            context += (
+                f"- {p.get('title', 'Project')}: "
+                f"{p.get('description', '')}\n"
+            )
+
     if experience:
-        context += f"Experience:\n"
+        context += "Experience:\n"
+
         for e in experience[:2]:
-            context += f"- {e.get('role', 'Role')} at {e.get('company', 'Company')}: {e.get('description', '')}\n"
+            context += (
+                f"- {e.get('role', 'Role')} at "
+                f"{e.get('company', 'Company')}: "
+                f"{e.get('description', '')}\n"
+            )
+
     if education:
-        context += f"Education: {education[0].get('degree', '')} from {education[0].get('institution', '')}\n"
+        context += (
+            f"Education: "
+            f"{education[0].get('degree', '')} from "
+            f"{education[0].get('institution', '')}\n"
+        )
+
     if resume_text:
-        snippet = resume_text[:3000]
-        context += f"Resume Excerpt:\n{snippet}\n"
+        context += (
+            "Resume Excerpt:\n"
+            f"{resume_text[:5000]}\n"
+        )
+
     return context
 
 
-def generate_first_question(candidate_profile, resume_text, previous_answers=None, questions=None):
-    if not API_KEY:
-        return generate_fallback_question(1, candidate_profile, [])
+# =========================================================
+# AI PROVIDER REQUEST
+# =========================================================
 
-    context = build_resume_context(candidate_profile, resume_text)
-    answer_history = ""
-    asked_topics = []
-    if previous_answers:
-        answer_history = "\nPrevious questions and answers:\n"
-        for i, ans in enumerate(previous_answers[-3:], 1):
-            q_text = ans.get("question", "")
-            answer_history += f"Q{i}: {q_text}\nA{i}: {ans.get('transcript', '')[:500]}\n"
-            if questions:
-                prev_q = next((q for q in questions if q.get("id") == ans.get("questionId")), {})
-                if prev_q.get("topic"):
-                    asked_topics.append(prev_q.get("topic"))
+def call_ai_provider(provider, prompt):
 
-    question_number = len(previous_answers) + 1 if previous_answers else 1
+    if provider == "groq":
 
-    random_seed = hash(f"{question_number}{time.time()}{random.random()}") % 10000
+        url = "https://api.groq.com/openai/v1/chat/completions"
 
-    prompt = f"""You are an expert technical interviewer conducting a 20-minute adaptive technical interview with EXACTLY 7 questions.
-Generate question #{question_number} based on the candidate's resume and previous answers.
+        api_key = GROQ_API_KEY
 
-Resume Context:
-{context}
-{answer_history}
+        model = "openai/gpt-oss-20b"
 
-Rules:
-- Ask ONE question at a time.
-- Make it personalized based on resume content.
-- Cover technical depth: resume-specific, DSA, system design, databases, OS, networks, or OOP as appropriate.
-- Question {question_number} should be {"foundational" if question_number <= 2 else "follow-up based on previous answers" if question_number <= 4 else "advanced/deeper technical" if question_number <= 6 else "final comprehensive"}.
-- Do NOT repeat previously asked topics unless drilling deeper.
-- IMPORTANT: Generate a UNIQUE question. Do not reuse the same question text.
-- Random seed for variation: {random_seed}
-- Output STRICT JSON only, no markdown, no code blocks.
+    elif provider == "mistral":
 
-Output format:
-{{
-  "question": "The interview question text...",
-  "topic": "Topic name",
-  "difficulty": "Easy|Medium|Hard",
-  "questionType": "resume|dsa|system-design|concept|project",
-  "ttsText": "A natural spoken version of the question for text-to-speech"
-}}"""
+        url = "https://api.mistral.ai/v1/chat/completions"
 
-    models = [
-        "meta-llama/llama-3.3-70b-instruct",
-        "google/gemini-2.5-flash",
-        "qwen/qwen-2.5-coder-32b-instruct",
+        api_key = MISTRAL_API_KEY
+
+        model = "mistral-small-latest"
+
+    else:
+
+        return ""
+
+    if not api_key:
+
+        print(
+            f"[AI Interview] "
+            f"{provider.upper()} API key missing."
+        )
+
+        return ""
+
+    headers = {
+        "Authorization": f"Bearer {api_key}",
+        "Content-Type": "application/json",
+    }
+
+    payload = {
+        "model": model,
+        "messages": [
+            {
+                "role": "user",
+                "content": prompt
+            }
+        ],
+        "temperature": 0.7,
+        "max_tokens": 150,
+    }
+
+    try:
+
+        print(
+            f"[AI Interview] "
+            f"Calling {provider.upper()}..."
+        )
+
+        response = requests.post(
+            url,
+            headers=headers,
+            json=payload,
+            timeout=15
+        )
+
+        print(
+            f"[AI Interview] "
+            f"{provider.upper()} status: "
+            f"{response.status_code}"
+        )
+
+        if response.status_code != 200:
+
+            print(
+                f"[AI Interview] "
+                f"{provider.upper()} error: "
+                f"{response.text[:500]}"
+            )
+
+            return ""
+
+        data = response.json()
+
+        return extract_content(data)
+
+    except Exception as e:
+
+        print(
+            f"[AI Interview] "
+            f"{provider.upper()} failed: {e}"
+        )
+
+        return ""
+
+
+
+# =========================================================
+# EXTRACT MODEL CONTENT
+# =========================================================
+
+def extract_content(data):
+
+    # OpenRouter / OpenAI-style response
+    if (
+        "choices" in data
+        and len(data["choices"]) > 0
+    ):
+        return (
+            data["choices"][0]
+            .get("message", {})
+            .get("content", "")
+        )
+
+    # Gemini-style response
+    if (
+        "candidates" in data
+        and len(data["candidates"]) > 0
+    ):
+        try:
+            return (
+                data["candidates"][0]
+                ["content"]
+                ["parts"][0]
+                ["text"]
+            )
+        except (KeyError, IndexError, TypeError):
+            return ""
+
+    return ""
+
+
+# =========================================================
+# AI QUESTION GENERATOR
+#
+# FLOW:
+#
+# Resume
+#   ↓
+# Resume context
+#   ↓
+# Gemini / OpenRouter
+#   ↓
+# AI-generated personalized question
+#   ↓
+# If API fails → fallback question bank
+# =========================================================
+
+def generate_first_question(
+    candidate_profile,
+    resume_text,
+    previous_answers=None,
+    questions=None
+):
+    candidate_profile = candidate_profile or {}
+    previous_answers = previous_answers or []
+    questions = questions or []
+
+    question_number = len(questions) + 1
+
+    # =====================================================
+    # QUESTIONS ALREADY ASKED
+    # =====================================================
+
+    asked_questions = [
+        q.get("question", "")
+        for q in questions
+        if q.get("question")
     ]
 
-    for model in models:
+    # =====================================================
+    # FULL RESUME
+    #
+    # IMPORTANT:
+    # The AI receives the complete extracted resume.
+    # Question bank is NOT used here.
+    # =====================================================
+
+    full_resume = (resume_text or "").strip()
+
+    print("\n========== RESUME RECEIVED ==========")
+    print(full_resume)
+    print("=====================================\n")
+
+    # =====================================================
+    # PREVIOUS QUESTIONS + ANSWERS
+    # =====================================================
+
+    answer_history = ""
+
+    if previous_answers:
+        answer_history = (
+            "\nPREVIOUS INTERVIEW QUESTIONS AND ANSWERS:\n"
+        )
+
+        for i, ans in enumerate(
+            previous_answers[-5:],
+            1
+        ):
+            q_text = ans.get(
+                "question",
+                ""
+            )
+
+            transcript = ans.get(
+                "transcript",
+                ""
+            )
+
+            answer_history += (
+                f"\nQuestion {i}: {q_text}\n"
+                f"Candidate Answer {i}: "
+                f"{transcript[:1500]}\n"
+            )
+
+    # =====================================================
+    # DIFFICULTY PROGRESSION
+    # =====================================================
+
+    if question_number <= 2:
+        difficulty = "Easy to Medium"
+
+    elif question_number <= 4:
+        difficulty = "Medium"
+
+    elif question_number <= 6:
+        difficulty = "Medium to Hard"
+
+    else:
+        difficulty = "Hard"
+
+    # =====================================================
+    # AI PROMPT
+    #
+    # Resume → AI
+    #
+    # NO QUESTION BANK SELECTION HERE
+    # =====================================================
+
+    prompt = f"""
+You are the technical interviewer for VIREZA.
+
+You are conducting a technical interview with a candidate.
+
+QUESTION NUMBER:
+{question_number} of 7
+
+TARGET DIFFICULTY:
+{difficulty}
+
+CANDIDATE'S FULL RESUME:
+--------------------------------------------------
+{full_resume}
+--------------------------------------------------
+
+{answer_history}
+
+QUESTIONS ALREADY ASKED:
+{json.dumps(asked_questions)}
+
+IMPORTANT RULES:
+
+1. Read the candidate's resume carefully.
+
+2. Generate EXACTLY ONE technical interview question.
+
+3. The question MUST be based on information explicitly
+   present in the candidate's resume.
+
+4. The question may be based on:
+   - skills
+   - technologies
+   - programming languages
+   - frameworks
+   - databases
+   - projects
+   - work experience
+   - internships
+   - technical responsibilities
+   - technical achievements
+   - education-related technical subjects
+
+5. NEVER invent a technology that is not present in the resume.
+
+6. NEVER assume the candidate knows Python, Java, SQL,
+   React, Node.js, Flask, Django, or any other technology
+   unless that technology is actually supported by the resume.
+
+7. If the resume contains a project, prefer asking about
+   that project and the technologies used in it.
+
+8. If the resume contains technical skills, ask about
+   those actual skills.
+
+9. For later questions, use the candidate's previous answer
+   to create a meaningful follow-up when appropriate.
+
+10. Gradually increase the difficulty.
+
+11. NEVER repeat an already asked question.
+
+12. Do not ask a generic programming question when the
+    resume contains specific technical information.
+
+13. Do not mention that you are an AI.
+
+14. Do not provide the answer.
+
+15. Return STRICT JSON only.
+
+16. Do not use markdown.
+
+17. Do not use a ```json code block.
+
+OUTPUT FORMAT:
+
+{{
+    "question": "One technical interview question",
+    "topic": "Actual skill, technology, or project from resume",
+    "difficulty": "Easy|Medium|Hard",
+    "questionType": "resume|concept|project|dsa|system-design",
+    "ttsText": "Natural spoken version of the question"
+}}
+"""
+
+    # =====================================================
+    # AI PROVIDERS
+    #
+    # GROQ = PRIMARY
+    # MISTRAL = BACKUP
+    # QUESTION BANK = ONLY FINAL FALLBACK
+    # =====================================================
+
+    providers = [
+        "groq",
+        "mistral"
+    ]
+
+    for provider in providers:
+
         try:
-            url, headers, payload = build_openrouter_request(model, prompt)
-            res = requests.post(url, headers=headers, json=payload, timeout=15)
-            if res.status_code == 200:
-                data = res.json()
-                raw_text = extract_content(data)
-                parsed = safe_json_parse(raw_text)
-                if parsed and "question" in parsed:
-                    parsed["id"] = f"q{question_number}"
-                    return parsed
-        except Exception:
+            print(
+                f"\n[AI Interview] "
+                f"Trying provider: {provider.upper()}"
+            )
+
+            raw_text = call_ai_provider(
+                provider,
+                prompt
+            )
+
+            if not raw_text:
+                print(
+                    f"[AI Interview] "
+                    f"{provider.upper()} returned no response."
+                )
+                continue
+
+            # =================================================
+            # PARSE AI RESPONSE
+            # =================================================
+
+            parsed = safe_json_parse(
+                raw_text
+            )
+
+            if not parsed:
+                print(
+                    f"[AI Interview] "
+                    f"{provider.upper()} returned invalid JSON."
+                )
+                continue
+
+            # =================================================
+            # GET QUESTION
+            # =================================================
+
+            question = str(
+                parsed.get(
+                    "question",
+                    ""
+                )
+            ).strip()
+
+            if not question:
+                print(
+                    f"[AI Interview] "
+                    f"{provider.upper()} returned no question."
+                )
+                continue
+
+            # =================================================
+            # PREVENT DUPLICATE QUESTIONS
+            # =================================================
+
+            already_asked = {
+                q.strip().lower()
+                for q in asked_questions
+            }
+
+            if question.lower() in already_asked:
+
+                print(
+                    "[AI Interview] "
+                    "AI returned a duplicate question."
+                )
+
+                continue
+
+            # =================================================
+            # BUILD FINAL QUESTION OBJECT
+            # =================================================
+
+            parsed["id"] = (
+                f"q{question_number}"
+            )
+
+            parsed["question"] = question
+
+            parsed.setdefault(
+                "topic",
+                "resume"
+            )
+
+            parsed.setdefault(
+                "difficulty",
+                "Medium"
+            )
+
+            parsed.setdefault(
+                "questionType",
+                "resume"
+            )
+
+            parsed.setdefault(
+                "ttsText",
+                question
+            )
+
+            print(
+                f"[AI Interview] "
+                f"{provider.upper()} generated question:"
+            )
+
+            print(
+                parsed["question"]
+            )
+
+            return parsed
+
+        except Exception as e:
+
+            print(
+                f"[AI Interview] "
+                f"{provider.upper()} failed: {e}"
+            )
+
             continue
 
-    return generate_fallback_question(question_number, candidate_profile, asked_topics)
+    # =====================================================
+    # BOTH AI PROVIDERS FAILED
+    #
+    # ONLY NOW USE QUESTION BANK
+    # =====================================================
 
+    print(
+        "\n[AI Interview] "
+        "Groq and Mistral both failed."
+    )
 
-def evaluate_answer(question_text, transcript, candidate_profile, resume_text):
-    if not API_KEY:
+    print(
+        "[AI Interview] "
+        "Using resume-based question bank fallback."
+    )
+
+    fallback = get_resume_question(
+        resume_text=full_resume,
+        difficulty="medium",
+        asked_questions=asked_questions
+    )
+
+    fallback_question = fallback.get(
+        "next_question",
+        ""
+    )
+
+    # =====================================================
+    # VALID RESUME-BASED FALLBACK FOUND
+    # =====================================================
+
+    if fallback_question:
+
         return {
-            "score": 6,
-            "technical_correctness": 6,
-            "depth": 6,
-            "communication": 6,
-            "relevance": 6,
-            "feedback": "Answer recorded and under review.",
-            "strengths": ["Candidate provided a response"],
-            "weaknesses": ["Further evaluation pending"],
+            "id": f"q{question_number}",
+
+            "question": fallback_question,
+
+            "topic": fallback.get(
+                "topic",
+                "resume"
+            ),
+
+            "difficulty": fallback.get(
+                "difficulty",
+                "medium"
+            ).capitalize(),
+
+            "questionType": "resume",
+
+            "ttsText": fallback_question
         }
 
-    context = build_resume_context(candidate_profile, resume_text)
-    prompt = f"""You are an expert technical interviewer evaluating a candidate's verbal answer.
-Question: {question_text}
-Candidate Answer (transcript): {transcript}
+    # =====================================================
+    # NO RESUME-BASED FALLBACK AVAILABLE
+    #
+    # IMPORTANT:
+    # Do NOT randomly ask Python.
+    # =====================================================
 
-Resume Context:
+    print(
+        "[AI Interview] "
+        "No suitable resume-based fallback question found."
+    )
+
+    fallback_question = (
+        "Please explain one of the technical projects "
+        "or technologies mentioned in your resume."
+    )
+
+    return {
+        "id": f"q{question_number}",
+
+        "question": fallback_question,
+
+        "topic": "resume",
+
+        "difficulty": difficulty,
+
+        "questionType": "resume",
+
+        "ttsText": fallback_question
+    }
+
+# =========================================================
+# ANSWER EVALUATION
+# =========================================================
+
+def evaluate_answer(
+    question_text,
+    transcript,
+    candidate_profile,
+    resume_text
+):
+
+    transcript_clean = transcript.strip().lower()
+
+    no_answer_phrases = [
+        "i don't know",
+        "i dont know",
+        "don't know",
+        "dont know",
+        "no idea",
+        "i have no idea",
+        "not sure",
+        "i am not sure",
+        "i'm not sure",
+        "skip",
+        "pass"
+    ]
+
+    if not transcript_clean or any(
+        phrase in transcript_clean
+        for phrase in no_answer_phrases
+    ):
+        return {
+            "score": 1,
+            "technical_correctness": 1,
+            "depth": 1,
+            "communication": 3,
+            "relevance": 1,
+            "problem_solving": 1,
+            "feedback": (
+                "The candidate was unable to answer "
+                "this question."
+            ),
+            "strengths": [],
+            "weaknesses": [
+                "Review the underlying concept.",
+                "Practice explaining the topic."
+            ]
+        }
+
+    context = build_resume_context(
+        candidate_profile,
+        resume_text
+    )
+    prompt = f"""
+You are an expert technical interviewer.
+
+Evaluate the candidate's answer.
+
+QUESTION:
+{question_text}
+
+CANDIDATE ANSWER:
+{transcript}
+
+RESUME:
 {context}
 
-Evaluate the answer on these exact metrics (1-10 each):
-- technical_correctness
-- depth_of_understanding
-- communication_clarity
-- relevance
-- problem_solving
+Evaluate from 1-10:
+
+technical_correctness
+depth
+communication
+relevance
+problem_solving
 
 Also provide:
-- feedback: 1-2 sentences of concise professional feedback
-- strengths: array of 2-3 specific strengths from the answer
-- weaknesses: array of 2-3 specific areas for improvement
 
-Output STRICT JSON only:
+feedback:
+1-2 concise professional sentences.
+
+strengths:
+2-3 specific strengths.
+
+weaknesses:
+2-3 specific improvements.
+
+Output STRICT JSON only.
+
 {{
-  "score": 8,
-  "technical_correctness": 8,
-  "depth": 7,
-  "communication": 8,
-  "relevance": 8,
-  "problem_solving": 7,
-  "feedback": "...",
-  "strengths": ["..."],
-  "weaknesses": ["..."]
-}}"""
+    "score": 8,
+    "technical_correctness": 8,
+    "depth": 7,
+    "communication": 8,
+    "relevance": 8,
+    "problem_solving": 7,
+    "feedback": "Good explanation...",
+    "strengths": [
+        "Clear understanding",
+        "Correct terminology"
+    ],
+    "weaknesses": [
+        "Could explain deeper",
+        "Could mention edge cases"
+    ]
+}}
+"""
+        # =====================================================
+    # AI EVALUATION PROVIDERS
+    #
+    # Groq = primary
+    # Mistral = backup
+    # Local fallback = final fallback
+    # =====================================================
 
-    models = ["meta-llama/llama-3.3-70b-instruct", "google/gemini-2.5-flash"]
-    for model in models:
+    providers = [
+        "groq",
+        "mistral",
+    ]
+
+    for provider in providers:
+
         try:
-            url, headers, payload = build_openrouter_request(model, prompt)
-            res = requests.post(url, headers=headers, json=payload, timeout=15)
-            if res.status_code == 200:
-                data = res.json()
-                raw_text = extract_content(data)
-                parsed = safe_json_parse(raw_text)
-                if parsed and "score" in parsed:
-                    return parsed
-        except Exception:
-            continue
+
+            print(
+                f"[Evaluation] "
+                f"Trying {provider.upper()}..."
+            )
+
+            raw_text = call_ai_provider(
+                provider,
+                prompt
+            )
+
+            if not raw_text:
+                continue
+
+            parsed = safe_json_parse(raw_text)
+
+            if (
+                parsed
+                and "score" in parsed
+            ):
+
+                print(
+                    f"[Evaluation] "
+                    f"{provider.upper()} evaluation successful."
+                )
+
+                return parsed
+
+        except Exception as e:
+
+            print(
+                f"[Evaluation] "
+                f"{provider.upper()} failed: {e}"
+            )
+
+    # -----------------------------------------------------
+    # Evaluation fallback
+    # -----------------------------------------------------
 
     return {
         "score": 6,
@@ -191,279 +835,367 @@ Output STRICT JSON only:
         "communication": 6,
         "relevance": 6,
         "problem_solving": 6,
-        "feedback": "Answer recorded and under review.",
-        "strengths": ["Candidate provided a response"],
-        "weaknesses": ["Further evaluation pending"],
+        "feedback": (
+            "Answer recorded and under review."
+        ),
+        "strengths": [
+            "Candidate provided a response"
+        ],
+        "weaknesses": [
+            "Further evaluation pending"
+        ],
     }
 
 
+# =========================================================
+# FINAL REPORT
+# =========================================================
+
 def generate_final_report(session):
-    if not API_KEY:
+
+    if not GROQ_API_KEY and not MISTRAL_API_KEY:
         return generate_fallback_report(session)
 
-    answers = session.get("answers", [])
-    questions = session.get("questions", [])
-    profile = session.get("candidateProfile", {})
+    answers = session.get(
+        "answers",
+        []
+    )
+
+    questions = session.get(
+        "questions",
+        []
+    )
 
     qa_pairs = []
-    for ans in answers:
-        q_text = next((q.get("question", "") for q in questions if q.get("id") == ans.get("questionId")), "Unknown question")
+
+    for answer in answers:
+
+        question_text = next(
+            (
+                q.get("question", "")
+                for q in questions
+                if q.get("id")
+                == answer.get("questionId")
+            ),
+            "Unknown question"
+        )
+
         qa_pairs.append({
-            "question": q_text,
-            "transcript": ans.get("transcript", "")[:1000],
-            "evaluation": ans.get("evaluation", {}),
+            "question": question_text,
+            "transcript": answer.get(
+                "transcript",
+                ""
+            )[:1000],
+            "evaluation": answer.get(
+                "evaluation",
+                {}
+            ),
         })
 
-    scores = [ans.get("evaluation", {}).get("score", 0) for ans in answers]
-    overall = round(sum(scores) / len(scores)) if scores else 0
+    scores = [
+        answer.get(
+            "evaluation",
+            {}
+        ).get(
+            "score",
+            0
+        )
+        for answer in answers
+    ]
 
-    prompt = f"""You are an expert technical interviewer generating a final performance report.
-Generate a structured JSON report for this candidate interview session.
+    overall = (
+        round(
+            sum(scores) / len(scores)
+        )
+        if scores
+        else 0
+    )
 
-Overall Score: {overall}/100
-Total Questions Answered: {len(qa_pairs)}
-Candidate Role: {session.get('targetRole', 'Software Engineer')}
+    prompt = f"""
+You are an expert technical interviewer.
 
-Q&A Pairs:
-{json.dumps(qa_pairs, indent=2)}
+Generate a final performance report.
 
-Output STRICT JSON only, no markdown, no code blocks:
+Overall Score:
+{overall}/10
+
+Questions Answered:
+{len(qa_pairs)}
+
+Candidate Role:
+{session.get(
+    'targetRole',
+    'Software Engineer'
+)}
+
+Q&A:
+{json.dumps(
+    qa_pairs,
+    indent=2
+)}
+
+Output STRICT JSON only.
+
 {{
-  "overall_score": {overall},
-  "verdict": "Strong Technical Performance",
-  "categories": {{
-    "technical_knowledge": 82,
-    "problem_solving": 86,
-    "communication": 78,
-    "depth_of_understanding": 80,
-    "resume_knowledge": 88,
-    "adaptability": 84
-  }},
-  "topics_covered": ["JavaScript", "React", "APIs", "Databases", "System Design"],
-  "strengths": ["Strong understanding of...", "Good knowledge of..."],
-  "improvements": ["Improve...", "Go deeper into..."],
-  "question_performance": [
-    {{"topic": "Project Architecture", "score": 8.5}},
-    {{"topic": "React Performance", "score": 9.0}}
-  ],
-  "summary": "Overall, the candidate demonstrated strong practical knowledge...",
-  "integrity_summary": "All proctoring checks maintained throughout the interview.",
-  "recommendation": "Recommended for next round"
-}}"""
+    "overall_score": {overall},
+    "verdict": "Strong Technical Performance",
+    "categories": {{
+        "technical_knowledge": 82,
+        "problem_solving": 86,
+        "communication": 78,
+        "depth_of_understanding": 80,
+        "resume_knowledge": 88,
+        "adaptability": 84
+    }},
+    "topics_covered": [],
+    "strengths": [],
+    "improvements": [],
+    "question_performance": [],
+    "summary": "Overall performance summary.",
+    "integrity_summary":
+        "All proctoring checks maintained throughout the interview.",
+    "recommendation":
+        "Recommended for next round"
+}}
+"""
 
-    try:
-        url = "https://openrouter.ai/api/v1/chat/completions"
-        headers = {
-            "Authorization": f"Bearer {API_KEY}",
-            "Content-Type": "application/json",
-            "HTTP-Referer": "https://vireza.com",
-            "X-Title": "VIREZA AI Interview",
-        }
-        payload = {
-            "model": "meta-llama/llama-3.3-70b-instruct",
-            "messages": [{"role": "user", "content": prompt}],
-            "temperature": 0.2,
-            "max_tokens": 2000,
-        }
-        res = requests.post(url, headers=headers, json=payload, timeout=20)
-        if res.status_code == 200:
-            data = res.json()
-            raw_text = data.get("choices", [{}])[0].get("message", {}).get("content", "{}")
-            raw_text = raw_text.strip()
-            if raw_text.startswith("```json"):
-                raw_text = raw_text[7:]
-            if raw_text.startswith("```"):
-                raw_text = raw_text[3:]
-            if raw_text.endswith("```"):
-                raw_text = raw_text[:-3]
-            parsed = json.loads(raw_text.strip())
-            return parsed
-    except Exception as e:
-        print(f"[Report Generator] Error: {e}")
+        # =====================================================
+    # AI REPORT PROVIDERS
+    #
+    # Groq = primary
+    # Mistral = backup
+    # Local fallback = final fallback
+    # =====================================================
+
+    for provider in ["groq", "mistral"]:
+
+        try:
+
+            print(
+                f"[Report Generator] "
+                f"Trying {provider.upper()}..."
+            )
+
+            raw_text = call_ai_provider(
+                provider,
+                prompt
+            )
+
+            if not raw_text:
+                continue
+
+            parsed = safe_json_parse(raw_text)
+
+            if parsed:
+
+                print(
+                    f"[Report Generator] "
+                    f"{provider.upper()} report generated."
+                )
+
+                return parsed
+
+        except Exception as e:
+
+            print(
+                f"[Report Generator] "
+                f"{provider.upper()} failed: {e}"
+            )
 
     return generate_fallback_report(session)
 
 
+
+# =========================================================
+# FALLBACK REPORT
+# =========================================================
+
 def generate_fallback_report(session):
-    answers = session.get("answers", [])
-    questions = session.get("questions", [])
 
-    total = len(answers)
-    if total == 0:
-        overall = 0
-    else:
-        scores = []
-        for ans in answers:
-            ev = ans.get("evaluation", {})
-            scores.append(ev.get("score", 5))
-        overall = round(sum(scores) / len(scores)) if scores else 0
-
-    q_perf = []
-    for ans in answers:
-        q = next((q for q in questions if q.get("id") == ans.get("questionId")), {})
-        ev = ans.get("evaluation", {})
-        q_perf.append({
-            "topic": q.get("topic", "General"),
-            "score": ev.get("score", 6),
-            "question": q.get("question", ""),
-            "transcript": ans.get("transcript", ""),
-            "evaluation": ev,
-        })
-
-    integrity_events = session.get("integrityEvents", [])
-    integrity_summary = (
-        "All proctoring checks maintained throughout the interview."
-        if not integrity_events
-        else f"{len(integrity_events)} monitoring events detected during the interview."
+    answers = session.get(
+        "answers",
+        []
     )
 
-    if overall >= 80:
-        verdict = "Strong Technical Performance"
-        recommendation = "Recommended for next round"
-    elif overall >= 60:
-        verdict = "Satisfactory Technical Performance"
-        recommendation = "Consider further evaluation"
+    questions = session.get(
+        "questions",
+        []
+    )
+
+    total = len(answers)
+
+    scores = [
+        answer.get(
+            "evaluation",
+            {}
+        ).get(
+            "score",
+            6
+        )
+        for answer in answers
+    ]
+
+    overall = (
+        round(sum(scores) / len(scores))
+        if scores
+        else 0
+    )
+
+    question_performance = []
+
+    for answer in answers:
+
+        question = next(
+            (
+                q
+                for q in questions
+                if q.get("id")
+                == answer.get("questionId")
+            ),
+            {}
+        )
+
+        evaluation = answer.get(
+            "evaluation",
+            {}
+        )
+
+        question_performance.append({
+            "topic": question.get(
+                "topic",
+                "General"
+            ),
+            "score": evaluation.get(
+                "score",
+                6
+            ),
+            "question": question.get(
+                "question",
+                ""
+            ),
+            "transcript": answer.get(
+                "transcript",
+                ""
+            ),
+            "evaluation": evaluation,
+        })
+
+    integrity_events = session.get(
+        "integrityEvents",
+        []
+    )
+
+    if integrity_events:
+
+        integrity_summary = (
+            f"{len(integrity_events)} "
+            "monitoring events detected "
+            "during the interview."
+        )
+
     else:
+
+        integrity_summary = (
+            "All proctoring checks maintained "
+            "throughout the interview."
+        )
+
+    if overall >= 8:
+
+        verdict = (
+            "Strong Technical Performance"
+        )
+
+        recommendation = (
+            "Recommended for next round"
+        )
+
+    elif overall >= 6:
+
+        verdict = (
+            "Satisfactory Technical Performance"
+        )
+
+        recommendation = (
+            "Consider further evaluation"
+        )
+
+    else:
+
         verdict = "Needs Improvement"
-        recommendation = "Further technical practice recommended"
+
+        recommendation = (
+            "Further technical practice "
+            "recommended"
+        )
+
+    topics = list({
+        q.get(
+            "topic",
+            "General"
+        )
+        for q in questions
+    })
 
     return {
         "overall_score": overall,
         "verdict": verdict,
+
         "categories": {
-            "technical_knowledge": min(100, overall + 3),
-            "problem_solving": min(100, overall + 5),
-            "communication": min(100, overall - 2),
-            "depth_of_understanding": min(100, overall + 1),
-            "resume_knowledge": min(100, overall + 6),
-            "adaptability": min(100, overall + 2),
+            "technical_knowledge":
+                min(100, overall * 10 + 3),
+
+            "problem_solving":
+                min(100, overall * 10 + 5),
+
+            "communication":
+                max(0, overall * 10 - 2),
+
+            "depth_of_understanding":
+                min(100, overall * 10 + 1),
+
+            "resume_knowledge":
+                min(100, overall * 10 + 6),
+
+            "adaptability":
+                min(100, overall * 10 + 2),
         },
-        "topics_covered": list({q.get("topic", "General") for q in questions}),
+
+        "topics_covered": topics,
+
         "strengths": [
-            "Demonstrated solid understanding of core concepts",
-            "Provided clear and structured answers",
+            "Demonstrated understanding "
+            "of core concepts",
+            "Provided structured "
+            "technical responses",
         ],
+
         "improvements": [
-            "Explore deeper edge cases and trade-offs",
-            "Strengthen communication on complex topics",
+            "Explore deeper edge cases "
+            "and trade-offs",
+            "Strengthen communication "
+            "on complex topics",
         ],
-        "question_performance": q_perf,
-        "summary": f"The candidate answered {total} questions with an average score of {overall}/10.",
-        "integrity_summary": integrity_summary,
-        "recommendation": recommendation,
+
+        "question_performance":
+            question_performance,
+
+        "summary": (
+            f"The candidate answered "
+            f"{total} questions with an "
+            f"average score of "
+            f"{overall}/10."
+        ),
+
+        "integrity_summary":
+            integrity_summary,
+
+        "recommendation":
+            recommendation,
     }
 
 
-def build_openrouter_request(model, prompt):
-    url = "https://openrouter.ai/api/v1/chat/completions"
-    headers = {
-        "Authorization": f"Bearer {API_KEY}",
-        "Content-Type": "application/json",
-        "HTTP-Referer": "https://vireza.com",
-        "X-Title": "VIREZA AI Interview",
-    }
-    payload = {
-        "model": model,
-        "messages": [{"role": "user", "content": prompt}],
-        "temperature": 0.3,
-        "max_tokens": 1000,
-    }
-    return url, headers, payload
+# =========================================================
+# END OF FILE
+# =========================================================
 
-
-def extract_content(data):
-    if "choices" in data and len(data["choices"]) > 0:
-        return data["choices"][0]["message"]["content"]
-    elif "candidates" in data and len(data["candidates"]) > 0:
-        return data["candidates"][0]["content"]["parts"][0]["text"]
-    return "{}"
-
-
-def generate_fallback_question(question_number, candidate_profile, asked_topics=None):
-    skills = candidate_profile.get("skills", [])
-    topic = skills[0] if skills else "programming"
-    asked_topics = asked_topics or []
-
-    difficulty_map = {1: "Easy", 2: "Easy", 3: "Medium", 4: "Medium", 5: "Medium", 6: "Hard", 7: "Hard"}
-    difficulty = difficulty_map.get(question_number, "Medium")
-
-    all_questions = [
-        {
-            "question": f"Can you explain the fundamental concepts of {topic} and how you have used them in your projects?",
-            "topic": topic,
-            "difficulty": "Easy",
-            "questionType": "resume",
-            "ttsText": f"Can you explain the fundamental concepts of {topic} and how you have used them in your projects?",
-        },
-        {
-            "question": f"What are the key differences between different approaches in {topic}, and when would you choose one over the other?",
-            "topic": topic,
-            "difficulty": "Easy",
-            "questionType": "concept",
-            "ttsText": f"What are the key differences between different approaches in {topic}, and when would you choose one over the other?",
-        },
-        {
-            "question": f"Describe how you would design a scalable system using {topic}. What are the main challenges?",
-            "topic": "System Design",
-            "difficulty": "Medium",
-            "questionType": "system-design",
-            "ttsText": f"Describe how you would design a scalable system using {topic}. What are the main challenges?",
-        },
-        {
-            "question": "Can you explain the time and space complexity of your approach? How would you optimize it?",
-            "topic": "Algorithms",
-            "difficulty": "Medium",
-            "questionType": "dsa",
-            "ttsText": "Can you explain the time and space complexity of your approach? How would you optimize it?",
-        },
-        {
-            "question": f"Tell me about a challenging technical problem you solved in a {topic} project. What was your approach?",
-            "topic": "Problem Solving",
-            "difficulty": "Medium",
-            "questionType": "project",
-            "ttsText": f"Tell me about a challenging technical problem you solved in a {topic} project. What was your approach?",
-        },
-        {
-            "question": "How would you handle database optimization and indexing for a high-traffic application?",
-            "topic": "Databases",
-            "difficulty": "Hard",
-            "questionType": "concept",
-            "ttsText": "How would you handle database optimization and indexing for a high-traffic application?",
-        },
-        {
-            "question": "Design a distributed caching system. What consistency issues might arise and how would you address them?",
-            "topic": "System Design",
-            "difficulty": "Hard",
-            "questionType": "system-design",
-            "ttsText": "Design a distributed caching system. What consistency issues might arise and how would you address them?",
-        },
-        {
-            "question": f"How does {topic} handle concurrency and thread safety in a multi-threaded environment?",
-            "topic": "Concurrency",
-            "difficulty": "Hard",
-            "questionType": "concept",
-            "ttsText": f"How does {topic} handle concurrency and thread safety in a multi-threaded environment?",
-        },
-        {
-            "question": "Explain the CAP theorem and how it applies to distributed database systems.",
-            "topic": "Distributed Systems",
-            "difficulty": "Hard",
-            "questionType": "concept",
-            "ttsText": "Explain the CAP theorem and how it applies to distributed database systems.",
-        },
-        {
-            "question": f"What design patterns have you used in {topic}, and why did you choose them?",
-            "topic": "Design Patterns",
-            "difficulty": "Medium",
-            "questionType": "concept",
-            "ttsText": f"What design patterns have you used in {topic}, and why did you choose them?",
-        },
-    ]
-
-    filtered = [q for q in all_questions if q["topic"] not in asked_topics]
-    if not filtered:
-        filtered = all_questions
-
-    selected = filtered[question_number % len(filtered)]
-    selected["id"] = f"q{question_number}"
-    return selected

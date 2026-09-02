@@ -17,6 +17,7 @@ from technical_interview.session_store import (
 )
 from technical_interview.ai_interviewer import generate_first_question, evaluate_answer
 from technical_interview.report_generator import generate_final_report
+from technical_interview.skill_detector import detect_skills
 
 load_dotenv()
 
@@ -44,7 +45,16 @@ def start_interview():
         session_id = str(uuid.uuid4())
         session = create_ti_session(session_id, candidate_profile, resume_text, attempt_number)
 
-        first_q = generate_first_question(candidate_profile, resume_text)
+
+###########addedd by nikita #############
+        first_q = generate_first_question(
+                candidate_profile=candidate_profile,
+                resume_text=resume_text,
+                previous_answers=[],
+                questions=[]
+            )
+
+        ################################till here ####################
         session["questions"].append(first_q)
         session["currentQuestionId"] = first_q.get("id", "q1")
 

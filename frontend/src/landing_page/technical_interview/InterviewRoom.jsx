@@ -16,6 +16,7 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
   const [state, setState] = useState(INTERVIEW_STATES.PREPARING);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [transcript, setTranscript] = useState("");
+  const transcriptRef = useRef("");/*##############################*/
   const [interimTranscript, setInterimTranscript] = useState("");
   const [timeRemaining, setTimeRemaining] = useState(20 * 60);
   const [isRecording, setIsRecording] = useState(false);
@@ -127,7 +128,12 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
         if (event.results[i].isFinal) final += t + " ";
         else interim += t;
       }
-      setTranscript((prev) => prev + final);
+      // setTranscript((prev) => prev + final);
+      setTranscript((prev) => {
+        const updated = prev + final;
+        transcriptRef.current = updated;
+        return updated;
+      });
       setInterimTranscript(interim);
     };
 
@@ -234,21 +240,96 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
   }, [sessionId, transcript, currentQuestion, startListening, speak]);
   fetchNextQuestionRef.current = fetchNextQuestion;
 
+  // const handleStopListening = useCallback(async () => {
+  //   shouldListenRef.current = false;
+  //   stopListening();
+  //   const fullTranscript = (transcript + " " + interimTranscript).trim();
+  //   if (!fullTranscript) return;
+  //   setState(INTERVIEW_STATES.EVALUATING);
+  //   const data = await sendAnswerToBackend(currentQuestion.id, fullTranscript, 0);
+  //   const answeredCount = data?.questionCount || questionCount;
+  //   if (answeredCount >= MAX_QUESTIONS) {
+  //     setState(INTERVIEW_STATES.COMPLETED);
+  //   } else {
+  //     setState(INTERVIEW_STATES.NEXT_QUESTION);
+  //     setTimeout(() => fetchNextQuestionRef.current?.(), 1000);
+  //   }
+  // }, [transcript, interimTranscript, currentQuestion, questionCount, sendAnswerToBackend, stopListening]);
+  /*##################added by nikita ########################*/
   const handleStopListening = useCallback(async () => {
-    shouldListenRef.current = false;
-    stopListening();
-    const fullTranscript = (transcript + " " + interimTranscript).trim();
-    if (!fullTranscript) return;
-    setState(INTERVIEW_STATES.EVALUATING);
-    const data = await sendAnswerToBackend(currentQuestion.id, fullTranscript, 0);
-    const answeredCount = data?.questionCount || questionCount;
-    if (answeredCount >= MAX_QUESTIONS) {
-      setState(INTERVIEW_STATES.COMPLETED);
-    } else {
-      setState(INTERVIEW_STATES.NEXT_QUESTION);
-      setTimeout(() => fetchNextQuestionRef.current?.(), 1000);
+  shouldListenRef.current = false;
+  stopListening();
+
+  // const fullTranscript = (transcript + " " + interimTranscript).trim();
+  const fullTranscript = (transcriptRef.current + " " + interimTranscript).trim();
+
+  // if (!fullTranscript || !currentQuestion) return;
+  if (!currentQuestion) return;
+  setState(INTERVIEW_STATES.EVALUATING);
+
+  try {
+    const res = await fetch(
+      `${API_BASE}/api/technical-interview/${sessionId}/next-question`,
+      {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          previous_answer: fullTranscript,
+          previous_question_id: currentQuestion.id,
+        }),
+      }
+    );
+
+    const data = await res.json();
+
+    if (data.status !== "success") {
+      throw new Error(data.message || "Failed to get next question");
     }
-  }, [transcript, interimTranscript, currentQuestion, questionCount, sendAnswerToBackend, stopListening]);
+
+    setEvaluation(data.evaluation || null);
+
+    if (data.completed || !data.nextQuestion) {
+      setState(INTERVIEW_STATES.COMPLETED);
+      onComplete();
+      return;
+    }
+
+    setQuestionCount(data.questionCount || questionCount + 1);
+    setCurrentQuestion(data.nextQuestion);
+    setTranscript("");
+    setInterimTranscript("");
+    transcriptRef.current = "";
+
+    setState(INTERVIEW_STATES.ASKING);
+
+    if (data.nextQuestion.ttsText) {
+      await speak(data.nextQuestion.ttsText);
+    }
+
+    if (mountedRef.current) {
+      setState(INTERVIEW_STATES.LISTENING);
+      shouldListenRef.current = true;
+      startListening();
+    }
+  } catch (err) {
+    console.error("Answer/next question error:", err);
+
+    if (mountedRef.current) {
+      setErrorMsg("Could not process your answer. Please try again.");
+      setState(INTERVIEW_STATES.ERROR);
+    }
+  }
+}, [
+  transcript,
+  interimTranscript,
+  currentQuestion,
+  sessionId,
+  questionCount,
+  stopListening,
+  speak,
+  startListening,
+  onComplete,
+]);
 
   const handleEndInterview = async () => {
     shouldListenRef.current = false;

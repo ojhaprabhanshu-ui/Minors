@@ -28,7 +28,7 @@ export default function RB1() {
   <button 
   style={{ borderRadius: '40px' }}
   className="bg-blue-600 hover:bg-blue-700 text-white font-semibold px-7 py-3.5 shadow-md transition duration-200 text-center cursor-pointer" 
-  onClick={() => navigate("#")}
+  onClick={() => navigate("/resume/builder/resumeform")}
 >
   Create my resume
 </button>

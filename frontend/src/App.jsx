@@ -18,6 +18,7 @@ import TechnicalInterviewContainer from "./landing_page/technical_interview/Tech
 import HRInterviewContainer from "./landing_page/hr_interview/HRInterviewContainer";
 import FullInterviewContainer from "./landing_page/full_interview/FullInterviewContainer";
 import BlogPage from "./landing_page/Blog/Blogpage";
+import Resumeform from "./landing_page/resume/ResumeBuilder/resume_builder_form/Resumeform";
 
 function App() {
   const location = useLocation();
@@ -43,6 +44,7 @@ function App() {
           <Route path="/hr-interview" element={<HRInterviewContainer/>}/>
           <Route path="/full-interview" element={<FullInterviewContainer/>}/>
           <Route path="/blog" element={<BlogPage/>}/>
+          <Route path="/resume/builder/resumeform" element={<Resumeform/>}/>
         </Routes>
       </main>
 

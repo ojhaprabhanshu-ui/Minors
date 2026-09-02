@@ -6,13 +6,39 @@ import OACodingEnvironment from "./OACodingEnvironment";
 import OAResultDashboard from "./OAResultDashboard";
 import { exitFullscreen } from "./fullscreenUtils";
 
-export default function OAMainContainer() {
+// When `embeddedMode` is true:
+//   - Skip the auto-create path (do not call /api/oa/start).
+//   - Use the `initialSession` provided by the parent (Full Interview
+//     orchestrator already created the OA session inside its own lifecycle).
+//   - When the round finishes, call `onComplete(score)` instead of routing
+//     the result internally. This is what lets the parent mark the round
+//     done and advance to the next one.
+export default function OAMainContainer({
+  embeddedMode = false,
+  initialSession = null,
+  onComplete = null,
+}) {
   const [step, setStep] = useState("loading"); // loading, rules, system-check, assessment, result
-  const [session, setSession] = useState(null);
+  const [session, setSession] = useState(initialSession);
   const [result, setResult] = useState(null);
   const [errorMsg, setErrorMsg] = useState("");
 
   useEffect(() => {
+    // EMBEDDED MODE: parent already owns the session. Do not touch
+    // sessionStorage or /api/oa/start. We are responsible for calling
+    // onComplete when the round finishes.
+    if (embeddedMode && initialSession) {
+      setSession(initialSession);
+      setStep("rules");
+      return;
+    }
+    if (embeddedMode && !initialSession) {
+      setErrorMsg("Embedded OA round started without an initial session from the orchestrator.");
+      setStep("error");
+      return;
+    }
+
+    // STANDALONE MODE: original behavior, unchanged.
     // Check if session ID stored in sessionStorage or create new session
     const existingSessionId = sessionStorage.getItem("vireza_oa_session_id");
     if (existingSessionId) {
@@ -113,7 +139,14 @@ export default function OAMainContainer() {
       const data = await res.json();
       if (data.status === "success") {
         setResult(data.result);
-        setStep("result");
+        if (embeddedMode && typeof onComplete === "function") {
+          // The orchestrator is waiting for this signal. The parent will
+          // call /api/full-interview/<id>/round/complete which pulls the
+          // OA report from oa_sessions and stores it in the parent.
+          onComplete(data.result?.score || 0);
+        } else {
+          setStep("result");
+        }
       }
     } catch (err) {
       fetchResult();

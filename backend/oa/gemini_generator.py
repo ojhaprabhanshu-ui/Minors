@@ -205,7 +205,7 @@ QUESTION_BANK = [
             "cpp": "#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<vector<string>> groupAnagrams(vector<string>& strs) {\n        return {};\n    }\n};"
         },
         "testCases": {
-            "public": [{"input": "[\"eat\",\"tea\",\"tan\"]", "expected": "[[\"eat\",\"tea\",\"tan\"]]"}],
+            "public": [{"input": "[\"eat\",\"tea\",\"tan\"]", "expected": "[[\"eat\",\"tea\"],[\"tan\"]]"}],
             "hidden": [{"input": "[\"\"]", "expected": "[[\"\"]]"}]
         }
     },
@@ -380,13 +380,28 @@ def build_starter_code(function_name: str, arguments: list, arg_types: list, ret
 def generate_dsa_questions(candidate_profile: dict = None) -> list:
     """
     Generates 3 unique DSA questions. Falls back to local QUESTION_BANK on API failure.
+
+    The skill profile (if present) is injected into the prompt so the
+    scenario + examples can be tailored to the candidate's declared skills
+    (e.g. a candidate with React+Node.js gets an e-commerce scenario; a
+    candidate with Python+ML gets a data-pipeline scenario).
     """
+    # Pull the dynamic skill profile (set by the Full Interview orchestrator)
+    skill_block = ""
+    skill_anchor = ""
+    if isinstance(candidate_profile, dict):
+        skill_block = candidate_profile.get("_skill_block") or ""
+        sp = candidate_profile.get("skill_profile") or {}
+        primary = sp.get("primary") or []
+        if primary:
+            skill_anchor = f" The candidate's primary declared skills are: {', '.join(primary[:3])}. Tailor the scenario and problem framing to those skills."
+
     if not API_KEY:
         print("[OA AI Generator] No API key configured. Using local QUESTION_BANK.")
         slot_q1 = [q for q in QUESTION_BANK if q["id"] == "q1"]
         slot_q2 = [q for q in QUESTION_BANK if q["id"] == "q2"]
         slot_q3 = [q for q in QUESTION_BANK if q["id"] == "q3"]
-        
+
         fallback_selection = [random.choice(slot_q1), random.choice(slot_q2), random.choice(slot_q3)]
         for idx, q in enumerate(fallback_selection, 1):
             q["id"] = f"q{idx}"
@@ -412,6 +427,8 @@ def generate_dsa_questions(candidate_profile: dict = None) -> list:
         f"Q1 Topic: {selected_topics[0]} (Easy)\n"
         f"Q2 Topic: {selected_topics[1]} (Medium)\n"
         f"Q3 Topic: {selected_topics[2]} (Hard)\n"
+        f"{skill_anchor}\n"
+        f"{skill_block}\n"
         "Response format (VALID JSON ONLY, no markdown):\n"
         "{\n"
         '  "questions": [{"id":"q1", "title":"...", "topic":"...", "difficulty":"Easy", "description":"Single line description", "constraints":["..."], "examples":[{"input":"...", "output":"..."}], "functionName":"func", "arguments":["arg1"], "argTypes":["type"], "returnType":"type", "testCases":{"public":[{"input":"x", "expected":"y"}], "hidden":[{"input":"a", "expected":"b"}]}}]\n'

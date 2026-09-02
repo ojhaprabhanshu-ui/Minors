@@ -1,10 +1,33 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { exitFullscreen } from "../OA/fullscreenUtils";
 
+const END_INTERVIEW_PHRASES = [
+  "end interview",
+  "end the interview",
+  "stop interview",
+  "stop the interview",
+  "finish interview",
+  "finish the interview",
+  "i am done",
+  "i'm done",
+  "i am finished",
+  "i'm finished",
+  "terminate interview",
+  "end my interview",
+  "wrap up the interview",
+];
+
+const containsEndCommand = (text) => {
+  if (!text) return false;
+  const lower = text.toLowerCase().trim();
+  return END_INTERVIEW_PHRASES.some((p) => lower.includes(p));
+};
+
 const INTERVIEW_STATES = {
   PREPARING: "PREPARING",
   ASKING: "ASKING",
   LISTENING: "LISTENING",
+  REVIEWING: "REVIEWING",
   PROCESSING: "PROCESSING",
   EVALUATING: "EVALUATING",
   NEXT_QUESTION: "NEXT_QUESTION",
@@ -12,7 +35,7 @@ const INTERVIEW_STATES = {
   ERROR: "ERROR",
 };
 
-export default function InterviewRoom({ session, sessionId, onComplete }) {
+export default function InterviewRoom({ session, sessionId, onComplete, onEndInterview }) {
   const [state, setState] = useState(INTERVIEW_STATES.PREPARING);
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [transcript, setTranscript] = useState("");
@@ -25,6 +48,8 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
   const [evaluation, setEvaluation] = useState(null);
   const [isInitialized, setIsInitialized] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // REVIEWING step: user edits the transcript before sending to the AI.
+  const [editableTranscript, setEditableTranscript] = useState("");
 
   const videoRef = useRef(null);
   const streamRef = useRef(null);
@@ -36,9 +61,50 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
   const shouldListenRef = useRef(false);
   const speechQueueRef = useRef([]);
   const isSpeakingRef = useRef(false);
+  const transcriptRef = useRef("");
+  const endInterviewRef = useRef(null);
+  const interviewInitializedRef = useRef(false);
+  const restartTimeoutRef = useRef(null);
+  const recognitionStartedAtRef = useRef(null);
 
   const API_BASE = "http://localhost:5001";
   const MAX_QUESTIONS = 7;
+
+  // Initialize the interview exactly once when the session becomes available.
+  // This is the ONLY place we set the first question and arm the listener.
+  // The previous implementation had a second `useEffect` that ALSO set the
+  // first question and called startListening(), which created a double-arm
+  // race that frequently ate the candidate's first answer (the second
+  // startListening() would replace the first recognition instance and
+  // discard any interim transcript it had captured).
+  useEffect(() => {
+    if (interviewInitializedRef.current) return;
+    if (!session?.questions || session.questions.length === 0) return;
+
+    interviewInitializedRef.current = true;
+    const firstQ = session.questions[0];
+    console.log("[InterviewRoom] Initializing with first question:", firstQ);
+    setCurrentQuestion(firstQ);
+    setQuestionCount(1);
+    setState(INTERVIEW_STATES.ASKING);
+    transcriptRef.current = "";
+    setTranscript("");
+    setInterimTranscript("");
+
+    const armListening = () => {
+      if (!mountedRef.current) return;
+      setState(INTERVIEW_STATES.LISTENING);
+      shouldListenRef.current = true;
+      startListening();
+    };
+
+    if (firstQ?.ttsText) {
+      speak(firstQ.ttsText).then(armListening);
+    } else {
+      setTimeout(armListening, 1500);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [session?.id]);
 
   const cleanupMedia = useCallback(() => {
     if (streamRef.current) {
@@ -111,7 +177,11 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
     const recognition = new SpeechRecognition();
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.lang = "en-US";
+    // en-IN: more accurate for the dominant user base; works well for
+    // American/British English too. Pairs with the REVIEWING step so
+    // any misheard words are easy to fix.
+    recognition.lang = "en-IN";
+    try { recognition.maxAlternatives = 3; } catch (e) { /* not supported */ }
 
     recognition.onstart = () => {
       if (!mountedRef.current) return;
@@ -127,8 +197,22 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
         if (event.results[i].isFinal) final += t + " ";
         else interim += t;
       }
-      setTranscript((prev) => prev + final);
+      // CRITICAL: append to transcriptRef (the stable source of truth), not
+      // the React state, to avoid losing interim text across re-renders.
+      if (final) {
+        transcriptRef.current = (transcriptRef.current || "") + final;
+        setTranscript(transcriptRef.current);
+      }
       setInterimTranscript(interim);
+      const combined = ((transcriptRef.current || "") + " " + final + " " + interim).toLowerCase();
+      if (containsEndCommand(combined)) {
+        logIntegrity("END_INTERVIEW_COMMAND", "Candidate verbally ended the interview.");
+        shouldListenRef.current = false;
+        try { recognition.stop(); } catch (e) {}
+        if (mountedRef.current) {
+          endInterviewRef.current?.();
+        }
+      }
     };
 
     recognition.onerror = (event) => {
@@ -141,21 +225,50 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
     recognition.onend = () => {
       if (!mountedRef.current) return;
       setIsRecording(false);
-      if (shouldListenRef.current) {
-        setTimeout(() => {
+      if (!shouldListenRef.current) return;
+
+      // IMPORTANT: only auto-restart if the candidate has already begun
+      // speaking OR we are past the very first 8 seconds of the question.
+      // Previously, the recognition would fire `onend` after a few seconds
+      // of silence and immediately re-create a SpeechRecognition instance,
+      // which would discard any interim transcript captured by the first
+      // instance — this is what was eating the first answer.
+      const haveSomeTranscript = (transcriptRef.current || "").trim().length > 0;
+      const startedAt = recognitionStartedAtRef.current || (Date.now() - 10000);
+      const ageMs = Date.now() - startedAt;
+
+      if (haveSomeTranscript || ageMs > 8000) {
+        if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+        restartTimeoutRef.current = setTimeout(() => {
           if (mountedRef.current && shouldListenRef.current && !isSpeakingRef.current) {
             try {
+              recognitionStartedAtRef.current = Date.now();
               recognition.start();
             } catch (err) {
               console.error("Recognition restart error:", err);
             }
           }
-        }, 300);
+        }, 250);
+      } else {
+        // First 8s of a fresh question: keep the listener armed but do
+        // not re-arm the recognition. The candidate hasn't spoken yet,
+        // and re-arming now would clobber the first answer.
+        setTimeout(() => {
+          if (mountedRef.current && shouldListenRef.current && !isSpeakingRef.current) {
+            try {
+              recognitionStartedAtRef.current = Date.now();
+              recognition.start();
+            } catch (err) {
+              console.error("Recognition deferred start error:", err);
+            }
+          }
+        }, 500);
       }
     };
 
     recognitionRef.current = recognition;
     try {
+      recognitionStartedAtRef.current = Date.now();
       recognition.start();
     } catch (err) {
       console.error("Recognition start error:", err);
@@ -205,8 +318,13 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
           return;
         }
         setCurrentQuestion(data.nextQuestion);
+        // Reset the transcript source of truth BEFORE the new question
+        // is announced so the first answer to the new question is
+        // captured into a clean transcriptRef.
+        transcriptRef.current = "";
         setTranscript("");
         setInterimTranscript("");
+        setEditableTranscript("");
         setEvaluation(null);
         setState(INTERVIEW_STATES.ASKING);
         if (data.nextQuestion?.ttsText) {
@@ -237,10 +355,29 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
   const handleStopListening = useCallback(async () => {
     shouldListenRef.current = false;
     stopListening();
-    const fullTranscript = (transcript + " " + interimTranscript).trim();
+    // Use transcriptRef (stable, append-on-every-result) plus the live
+    // interim transcript (the most recent un-finalized chunk) so the AI
+    // sees the complete answer, not whatever React state has flushed.
+    const finalFromRef = (transcriptRef.current || "").trim();
+    const fullTranscript = (finalFromRef + " " + interimTranscript).trim();
     if (!fullTranscript) return;
+    // Push the interim chunk into the ref so it isn't lost on next question.
+    if (interimTranscript) {
+      transcriptRef.current = (transcriptRef.current || "") + interimTranscript + " ";
+    }
+    // REVIEWING step: let the candidate correct any misheard words
+    // before the transcript reaches the AI.
+    setEditableTranscript(fullTranscript);
+    setState(INTERVIEW_STATES.REVIEWING);
+  }, [interimTranscript, stopListening]);
+
+  const handleConfirmAndSend = useCallback(async () => {
+    shouldListenRef.current = false;
+    const finalText = (editableTranscript || "").trim();
+    if (!finalText) return;
+    transcriptRef.current = finalText + " ";
     setState(INTERVIEW_STATES.EVALUATING);
-    const data = await sendAnswerToBackend(currentQuestion.id, fullTranscript, 0);
+    const data = await sendAnswerToBackend(currentQuestion.id, finalText, 0);
     const answeredCount = data?.questionCount || questionCount;
     if (answeredCount >= MAX_QUESTIONS) {
       setState(INTERVIEW_STATES.COMPLETED);
@@ -248,9 +385,10 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
       setState(INTERVIEW_STATES.NEXT_QUESTION);
       setTimeout(() => fetchNextQuestionRef.current?.(), 1000);
     }
-  }, [transcript, interimTranscript, currentQuestion, questionCount, sendAnswerToBackend, stopListening]);
+  }, [editableTranscript, currentQuestion, questionCount, sendAnswerToBackend]);
 
   const handleEndInterview = async () => {
+    onEndInterview?.();
     shouldListenRef.current = false;
     stopListening();
     cleanupMedia();
@@ -266,6 +404,7 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
       console.error(err);
     }
   };
+  endInterviewRef.current = handleEndInterview;
 
   useEffect(() => {
     mountedRef.current = true;
@@ -275,6 +414,8 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
       stopListening();
       window.speechSynthesis?.cancel();
       if (timerRef.current) clearInterval(timerRef.current);
+      if (restartTimeoutRef.current) clearTimeout(restartTimeoutRef.current);
+      recognitionStartedAtRef.current = null;
     };
   }, [cleanupMedia, stopListening]);
 
@@ -338,29 +479,12 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
 
   useEffect(() => {
     if (!isInitialized && session?.questions?.length > 0) {
-      const firstQ = session.questions[0];
-      setCurrentQuestion(firstQ);
+      // No-op: first-question initialization is now handled by the single
+      // guarded effect above (interviewInitializedRef). Keeping this stub
+      // for backward-compat with anything that reads `isInitialized`.
       setIsInitialized(true);
-      setState(INTERVIEW_STATES.ASKING);
-      if (firstQ?.ttsText) {
-        speak(firstQ.ttsText).then(() => {
-          if (mountedRef.current) {
-            setState(INTERVIEW_STATES.LISTENING);
-            shouldListenRef.current = true;
-            startListening();
-          }
-        });
-      } else {
-        setTimeout(() => {
-          if (mountedRef.current) {
-            setState(INTERVIEW_STATES.LISTENING);
-            shouldListenRef.current = true;
-            startListening();
-          }
-        }, 1500);
-      }
     }
-  }, [isInitialized, session, startListening, speak]);
+  }, [isInitialized, session]);
 
   useEffect(() => {
     if (timeRemaining <= 0) {
@@ -392,6 +516,8 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
         return isSpeaking ? "AI Interviewer is speaking..." : "AI Interviewer is asking...";
       case INTERVIEW_STATES.LISTENING:
         return isRecording ? "Listening to your answer..." : "Listening...";
+      case INTERVIEW_STATES.REVIEWING:
+        return "Review your answer before sending";
       case INTERVIEW_STATES.PROCESSING:
         return "Processing your response...";
       case INTERVIEW_STATES.EVALUATING:
@@ -508,6 +634,42 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
               {transcript}
             </div>
           )}
+
+          {state === INTERVIEW_STATES.REVIEWING && (
+            <div
+              className="card border-0 shadow-sm p-3 p-md-4 mt-3"
+              style={{ maxWidth: "700px", width: "100%", borderRadius: "16px", backgroundColor: "#eff6ff", border: "1px solid #bfdbfe" }}
+            >
+              <div className="d-flex align-items-center gap-2 mb-2">
+                <i className="fa-solid fa-pen-to-square" style={{ color: "#1e40af" }}></i>
+                <p className="small text-uppercase fw-bold text-muted mb-0" style={{ letterSpacing: "0.5px" }}>
+                  Review &amp; Edit Your Answer
+                </p>
+              </div>
+              <p className="small text-muted mb-2">
+                <i className="fa-solid fa-circle-info me-1"></i>
+                Voice transcription can mishear technical terms. Edit anything that looks wrong before sending.
+              </p>
+              <textarea
+                value={editableTranscript}
+                onChange={(e) => setEditableTranscript(e.target.value)}
+                className="form-control"
+                rows={6}
+                style={{ borderRadius: "10px", fontSize: "0.95rem", lineHeight: "1.6" }}
+                placeholder="Your answer will appear here. You can edit it before sending."
+              />
+              <div className="d-flex justify-content-between align-items-center mt-2 small text-muted">
+                <span>
+                  <i className="fa-solid fa-keyboard me-1"></i>
+                  {editableTranscript.trim().split(/\s+/).filter(Boolean).length} words
+                </span>
+                <span>
+                  <i className="fa-solid fa-microphone me-1"></i>
+                  Click "Add more" to keep speaking, or "Send" to submit.
+                </span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -525,6 +687,29 @@ export default function InterviewRoom({ session, sessionId, onComplete }) {
               <i className="fa-solid fa-stop"></i> Submit Answer
             </button>
             <span className="text-muted small">Listening... Click Submit when done.</span>
+          </>
+        )}
+        {state === INTERVIEW_STATES.REVIEWING && (
+          <>
+            <button
+              onClick={() => {
+                setState(INTERVIEW_STATES.LISTENING);
+                shouldListenRef.current = true;
+                startListening();
+              }}
+              className="btn btn-outline-secondary fw-bold px-4 py-2 d-flex align-items-center gap-2"
+              style={{ borderRadius: "10px" }}
+            >
+              <i className="fa-solid fa-microphone"></i> Add More
+            </button>
+            <button
+              onClick={handleConfirmAndSend}
+              className="btn btn-primary fw-bold px-4 py-2 d-flex align-items-center gap-2"
+              style={{ borderRadius: "10px" }}
+              disabled={!editableTranscript.trim()}
+            >
+              <i className="fa-solid fa-check"></i> Send to AI
+            </button>
           </>
         )}
         {state === INTERVIEW_STATES.PROCESSING && (

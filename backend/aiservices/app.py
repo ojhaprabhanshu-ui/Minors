@@ -540,6 +540,14 @@ from technical_interview.routes import register_technical_interview_routes
 
 register_technical_interview_routes(app)
 
+from hr_interview.routes import register_hr_interview_routes
+
+register_hr_interview_routes(app)
+
+from full_interview.routes import register_full_interview_routes
+
+register_full_interview_routes(app)
+
 
 # =========================
 # RUN SERVER

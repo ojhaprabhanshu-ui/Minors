@@ -15,11 +15,13 @@ import CTpage from "./landing_page/CV/CTpage";
 import AIPage from "./landing_page/AI_interview/AIPAGE1";
 import OAMainContainer from "./landing_page/OA/OAMainContainer";
 import TechnicalInterviewContainer from "./landing_page/technical_interview/TechnicalInterviewContainer";
+import HRInterviewContainer from "./landing_page/hr_interview/HRInterviewContainer";
+import FullInterviewContainer from "./landing_page/full_interview/FullInterviewContainer";
 import BlogPage from "./landing_page/Blog/Blogpage";
 
 function App() {
   const location = useLocation();
-  const hideLayout = ["/signup", "/login", "/oa", "/technical-interview"].includes(location.pathname);
+  const hideLayout = ["/signup", "/login", "/oa", "/technical-interview", "/hr-interview", "/full-interview"].includes(location.pathname);
 
   return (
     <div className="app-container">
@@ -38,6 +40,8 @@ function App() {
           <Route path="/AiInterviewcoach" element={<AIPage/>}/>
           <Route path="/oa" element={<OAMainContainer/>}/>
           <Route path="/technical-interview" element={<TechnicalInterviewContainer/>}/>
+          <Route path="/hr-interview" element={<HRInterviewContainer/>}/>
+          <Route path="/full-interview" element={<FullInterviewContainer/>}/>
           <Route path="/blog" element={<BlogPage/>}/>
         </Routes>
       </main>

@@ -8,18 +8,47 @@ function AIPage() {
   const [uploadError, setUploadError] = useState(false);
   const fileInputRef = useRef(null);
 
-  const handleFileChange = (e) => {
+  const handleFileChange = async (e) => {
     if (e.target.files && e.target.files[0]) {
-      setFile(e.target.files[0]);
+      const uploaded = e.target.files[0];
+      setFile(uploaded);
       setUploadError(false);
+      await analyzeResume(uploaded);
     }
   };
 
-  const handleDrop = (e) => {
+  const handleDrop = async (e) => {
     e.preventDefault();
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-      setFile(e.dataTransfer.files[0]);
+      const dropped = e.dataTransfer.files[0];
+      setFile(dropped);
       setUploadError(false);
+      await analyzeResume(dropped);
+    }
+  };
+
+  const analyzeResume = async (resumeFile) => {
+    try {
+      const formData = new FormData();
+      formData.append("resume", resumeFile);
+      formData.append("job_description", "Software engineering candidate");
+      const res = await fetch("http://localhost:5001/ats", {
+        method: "POST",
+        body: formData,
+      });
+      const data = await res.json();
+      if (res.ok && data.status === "success") {
+        localStorage.setItem("ats_score", data.ats_score);
+        localStorage.setItem("ats_eligible", data.ats_score >= 80 ? "true" : "false");
+        localStorage.setItem("ats_result", JSON.stringify(data));
+        const skillsArr = data.resume_analysis?.skills || [];
+        sessionStorage.setItem("ats_skills", JSON.stringify(skillsArr));
+        sessionStorage.setItem("ats_sections", JSON.stringify(data.resume_analysis?.sections || {}));
+        sessionStorage.setItem("ats_experience_years", String(data.resume_analysis?.experience_years || 0));
+        sessionStorage.setItem("ats_resume_analyzed_at", new Date().toISOString());
+      }
+    } catch (err) {
+      console.error("Resume analysis error (non-blocking):", err);
     }
   };
 
@@ -37,6 +66,12 @@ function AIPage() {
     } else if (modeName === 'Technical Interview' || selectedMode === 'technical') {
       sessionStorage.setItem("ats_resume_file_name", file.name);
       navigate("/technical-interview");
+    } else if (modeName === 'HR Interview' || selectedMode === 'hr') {
+      sessionStorage.setItem("ats_resume_file_name", file.name);
+      navigate("/hr-interview");
+    } else if (modeName === 'Full Interview' || selectedMode === 'full') {
+      sessionStorage.setItem("ats_resume_file_name", file.name);
+      navigate("/full-interview");
     } else {
       alert(`${modeName} is coming soon! Please complete Round 1: OA Round first.`);
     }
@@ -243,10 +278,11 @@ function AIPage() {
                 </p>
               </div>
               <ul className="text-xs text-slate-600 space-y-2 pt-2 bg-emerald-50/50 p-3 rounded-xl border border-emerald-100">
-                <li className="flex items-center gap-2">✓ 5–10 HR Questions</li>
-                <li className="flex items-center gap-2">✓ Behavioral Evaluation</li>
-                <li className="flex items-center gap-2">✓ Communication Feedback</li>
-                <li className="flex items-center gap-2">✓ HR Score Report</li>
+                <li className="flex items-center gap-2">✓ 5–15 Adaptive HR Questions</li>
+                <li className="flex items-center gap-2">✓ 30-Minute Duration</li>
+                <li className="flex items-center gap-2">✓ Behavioral & Situational Evaluation</li>
+                <li className="flex items-center gap-2">✓ Soft-Skills & Culture-Fit Report</li>
+                <li className="flex items-center gap-2">✓ "End Interview" Voice Command</li>
               </ul>
             </div>
             <button 
@@ -284,14 +320,15 @@ function AIPage() {
               <div>
                 <h3 className="text-xl font-bold text-slate-900">Full Interview</h3>
                 <p className="text-xs text-slate-500 mt-1">
-                  Complete experience combining Technical + HR rounds.
+                  Complete orchestrated pipeline: Coding + Technical + HR with cross-round analysis.
                 </p>
               </div>
               <ul className="text-xs text-slate-600 space-y-2 pt-2 bg-purple-50/50 p-3 rounded-xl border border-purple-100">
-                <li className="flex items-center gap-2">✓ Technical Round</li>
-                <li className="flex items-center gap-2">✓ HR Round</li>
-                <li className="flex items-center gap-2">✓ Adaptive Difficulty</li>
-                <li className="flex items-center gap-2">✓ Comprehensive Report</li>
+                <li className="flex items-center gap-2">✓ Round 1 — Coding (DSA)</li>
+                <li className="flex items-center gap-2">✓ Round 2 — Technical</li>
+                <li className="flex items-center gap-2">✓ Round 3 — HR</li>
+                <li className="flex items-center gap-2">✓ Weighted Overall Score</li>
+                <li className="flex items-center gap-2">✓ Cross-Round Consistency Analysis</li>
               </ul>
             </div>
             <button 

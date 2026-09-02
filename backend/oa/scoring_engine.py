@@ -157,6 +157,7 @@ Objective Results:
 - Qualified for Round 2: {qualified}
 - Questions: {json.dumps(q_results)}
 - Candidate Skills: {json.dumps(candidate_profile.get('skills', []))}
+{candidate_profile.get('_skill_block') or ''}
 
 Generate structured feedback in strict JSON format with these exact keys:
 "strengths": ["Strength 1", "Strength 2"],

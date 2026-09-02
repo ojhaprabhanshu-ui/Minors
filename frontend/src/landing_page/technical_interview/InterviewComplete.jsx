@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function InterviewComplete({ report, onViewReport, onRestart }) {
+export default function InterviewComplete({ report, onViewReport, onRestart ,onBack}) {
   if (!report) {
     return (
       <div className="container py-5 text-center">
@@ -120,9 +120,13 @@ export default function InterviewComplete({ report, onViewReport, onRestart }) {
           <button onClick={onViewReport} className="btn btn-primary fw-bold py-2 px-4" style={{ borderRadius: "10px" }}>
             View Detailed Report
           </button>
+          <button onClick={onBack} className="btn btn-primary fw-bold py-2 px-4" style={{ borderRadius: "10px" }}>
+          Return to Dashboard
+        </button>
           <button onClick={onRestart} className="btn btn-outline-secondary fw-bold py-2 px-4" style={{ borderRadius: "10px" }}>
             Use Round 2 Again
           </button>
+          
         </div>
       </div>
     </div>

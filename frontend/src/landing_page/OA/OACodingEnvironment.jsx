@@ -458,8 +458,15 @@ export default function OACodingEnvironment({ session, onFinishOA }) {
                 Test Output / Console Result
               </span>
               {consoleOutput && consoleOutput.result && (
-                <span className="badge bg-secondary">
-                  Runtime: {consoleOutput.result.runtimeMs || 0} ms
+                <span className="d-flex gap-2">
+                  {consoleOutput.result.compileMs > 0 && (
+                    <span className="badge bg-secondary">
+                      Compile: {consoleOutput.result.compileMs} ms
+                    </span>
+                  )}
+                  <span className="badge bg-secondary">
+                    Runtime: {consoleOutput.result.runtimeMs || 0} ms
+                  </span>
                 </span>
               )}
             </div>

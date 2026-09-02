@@ -1,11 +1,14 @@
 from sentence_transformers import SentenceTransformer
 from sklearn.metrics.pairwise import cosine_similarity
 import re
-
+import os
 
 # =========================
 # LOAD MODEL
 # =========================
+
+# Disable Hugging Face Hub warning
+os.environ['HF_HUB_DISABLE_TELEMETRY'] = '1'
 
 model = SentenceTransformer(
     "all-MiniLM-L6-v2"

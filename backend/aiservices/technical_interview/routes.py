@@ -83,7 +83,13 @@ def next_question(session_id):
                 candidate_profile,
                 resume_text,
             )
-            save_answer(session_id, previous_question_id, previous_answer, 0, evaluation)
+            # Update the existing saved answer's evaluation in place so the
+            # report still has per-question feedback, without creating a
+            # duplicate row (the /answer endpoint already saved it).
+            for ans in session.get("answers", []):
+                if ans.get("questionId") == previous_question_id:
+                    ans["evaluation"] = evaluation
+                    break
         else:
             evaluation = None
 
@@ -169,14 +175,27 @@ def complete_interview(session_id):
         if not session:
             return jsonify({"status": "error", "message": "Session not found"}), 404
 
+        body = request.get_json(silent=True) or {}
+        end_reason = body.get("endReason") or "CANDIDATE_ENDED"
+
+        import time as _t
+        ends_at = session.get("endsAt")
+        if ends_at and _t.time() >= ends_at and session.get("status") != "COMPLETED":
+            end_reason = "TIME_EXPIRED"
+
         session["status"] = "COMPLETED"
+        session["endReason"] = end_reason
         report = generate_final_report(session)
         session["finalReport"] = report
         session["overallScore"] = report.get("overall_score")
 
-        complete_attempt(session.get("candidateProfile", {}).get("candidateId", "anonymous"), session_id, report)
+        complete_attempt(
+            session.get("candidateProfile", {}).get("candidateId", "anonymous"),
+            session_id,
+            report,
+        )
 
-        return jsonify({"status": "success", "report": report})
+        return jsonify({"status": "success", "report": report, "endReason": end_reason})
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 

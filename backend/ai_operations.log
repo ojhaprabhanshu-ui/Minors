@@ -1,0 +1,18 @@
+2026-09-03 15:41:23,129 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Starting OA question generation
+2026-09-03 15:41:23,129 - oa.gemini_generator - INFO - [oa_gen_1788430283129] API key configured, attempting AI generation with 2 retries per model
+2026-09-03 15:41:23,130 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/2)
+2026-09-03 15:41:23,673 - oa.gemini_generator - WARNING - [oa_gen_1788430283129] meta-llama/llama-3.3-70b-instruct returned HTTP 402 on attempt 1
+2026-09-03 15:41:23,673 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Retrying meta-llama/llama-3.3-70b-instruct...
+2026-09-03 15:41:24,674 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 2/2)
+2026-09-03 15:41:25,632 - oa.gemini_generator - WARNING - [oa_gen_1788430283129] meta-llama/llama-3.3-70b-instruct returned HTTP 402 on attempt 2
+2026-09-03 15:41:25,632 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Attempting model qwen/qwen-2.5-coder-32b-instruct (attempt 1/2)
+2026-09-03 15:41:26,204 - oa.gemini_generator - WARNING - [oa_gen_1788430283129] qwen/qwen-2.5-coder-32b-instruct returned HTTP 402 on attempt 1
+2026-09-03 15:41:26,204 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Retrying qwen/qwen-2.5-coder-32b-instruct...
+2026-09-03 15:41:27,205 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Attempting model qwen/qwen-2.5-coder-32b-instruct (attempt 2/2)
+2026-09-03 15:41:28,097 - oa.gemini_generator - WARNING - [oa_gen_1788430283129] qwen/qwen-2.5-coder-32b-instruct returned HTTP 402 on attempt 2
+2026-09-03 15:41:28,097 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Attempting model google/gemini-2.5-flash (attempt 1/2)
+2026-09-03 15:41:28,737 - oa.gemini_generator - WARNING - [oa_gen_1788430283129] google/gemini-2.5-flash returned HTTP 402 on attempt 1
+2026-09-03 15:41:28,737 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Retrying google/gemini-2.5-flash...
+2026-09-03 15:41:29,738 - oa.gemini_generator - INFO - [oa_gen_1788430283129] Attempting model google/gemini-2.5-flash (attempt 2/2)
+2026-09-03 15:41:30,277 - oa.gemini_generator - WARNING - [oa_gen_1788430283129] google/gemini-2.5-flash returned HTTP 402 on attempt 2
+2026-09-03 15:41:30,277 - oa.gemini_generator - ERROR - [oa_gen_1788430283129] All AI question generation models failed after 2 retries per model. API configuration: Configured. Please check: 1) API key validity, 2) Network connectivity, 3) AI service status.

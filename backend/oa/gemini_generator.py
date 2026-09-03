@@ -3,11 +3,24 @@ import os
 import random
 import time
 import requests
+import logging
+from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
 
 API_KEY = os.getenv("OPENROUTER_API_KEY") or os.getenv("GEMINI_API_KEY")
+
+# Configure logging
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    handlers=[
+        logging.FileHandler('ai_operations.log'),
+        logging.StreamHandler()
+    ]
+)
+logger = logging.getLogger(__name__)
 
 # =========================================================
 # JSON REPAIR & VALIDATION FUNCTIONS
@@ -36,16 +49,41 @@ def safe_json_parse(raw_text: str) -> dict:
         # First attempt: direct parse
         return json.loads(raw_text)
     except json.JSONDecodeError as e:
-        print(f"[JSON Parser] First parse failed: {e}")
+        logger.warning(f"[JSON Parser] First parse failed: {e}")
         
         try:
             # Second attempt: repair and retry
             repaired = repair_json_string(raw_text)
             return json.loads(repaired)
         except json.JSONDecodeError as e2:
-            print(f"[JSON Parser] Repair and parse failed: {e2}")
-            print(f"[JSON Parser] Raw text (first 200 chars): {raw_text[:200]}")
+            logger.error(f"[JSON Parser] Repair and parse failed: {e2}")
+            logger.error(f"[JSON Parser] Raw text (first 200 chars): {raw_text[:200]}")
             return {}
+
+def validate_questions(questions: list) -> bool:
+    """Validate that the generated questions have all required fields."""
+    if not questions or len(questions) != 3:
+        return False
+    
+    required_fields = ["id", "title", "topic", "difficulty", "description", "functionName", "arguments", "argTypes", "returnType", "testCases"]
+    
+    for q in questions:
+        if not all(field in q for field in required_fields):
+            return False
+        if not q.get("testCases") or not isinstance(q["testCases"], dict):
+            return False
+        if "public" not in q["testCases"] or "hidden" not in q["testCases"]:
+            return False
+    
+    return True
+
+def build_starter_code(function_name: str, arguments: list, arg_types: list, return_type: str) -> dict:
+    """Generate starter code templates for different languages."""
+    return {
+        "python": f"def {function_name}({', '.join(arguments)}):\n    pass",
+        "java": f"class Solution {{\n    public {return_type} {function_name}({', '.join(f'{t} {a}' for a, t in zip(arguments, arg_types))}) {{\n        return {'null' if return_type == 'void' else 'default value'};\n    }}\n}}",
+        "cpp": f"#include <vector>\nusing namespace std;\n\nclass Solution {{\npublic:\n    {return_type} {function_name}({', '.join(f'{t} {a}' for a, t in zip(arguments, arg_types))}) {{\n        return {'null' if return_type == 'void' else 'default value'};\n    }}\n}};"
+    }
 
 # =========================================================
 # HIGH-SPEED DYNAMIC DSA QUESTION GENERATOR (< 0.1s)
@@ -184,7 +222,7 @@ QUESTION_BANK = [
         "starterCode": {
             "python": "def lengthOfLongestSubstring(s: str) -> int:\n    pass",
             "java": "class Solution {\n    public int lengthOfLongestSubstring(String s) {\n        return 0;\n    }\n}",
-            "cpp": "#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        return 0;\n    }\n};"
+            "cpp": "#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    int lengthOfLongestSubstring(string s) {\n        return 0;\n}\n};"
         },
         "testCases": {
             "public": [{"input": "\"abcabcbb\"", "expected": "3"}],
@@ -205,7 +243,7 @@ QUESTION_BANK = [
         "returnType": "list[list[str]]",
         "starterCode": {
             "python": "def groupAnagrams(strs: list[str]) -> list[list[str]]:\n    pass",
-            "java": "import java.util.*;\nclass Solution {\n    public List<List<String>> groupAnagrams(String[] strs) {\n        return new ArrayList<>();\n    }\n}",
+            "java": "import java.util.*;\nclass Solution {\n    public List<List<String>> groupAnagrams(String[] strs) {\n        return new ArrayList<>();\n}\n}",
             "cpp": "#include <vector>\n#include <string>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<vector<string>> groupAnagrams(vector<string>& strs) {\n        return {};\n    }\n};"
         },
         "testCases": {
@@ -227,7 +265,7 @@ QUESTION_BANK = [
         "returnType": "list[list[int]]",
         "starterCode": {
             "python": "def threeSum(nums: list[int]) -> list[list[int]]:\n    pass",
-            "java": "import java.util.*;\nclass Solution {\n    public List<List<Integer>> threeSum(int[] nums) {\n        return new ArrayList<>();\n    }\n}",
+            "java": "import java.util.*;\nclass Solution {\n    public List<List<Integer>> threeSum(int[] nums) {\n        return new ArrayList<>();\n}\n}",
             "cpp": "#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    vector<vector<int>> threeSum(vector<int>& nums) {\n        return {};\n    }\n};"
         },
         "testCases": {
@@ -274,7 +312,7 @@ QUESTION_BANK = [
         "starterCode": {
             "python": "def numIslands(grid):\n    pass",
             "java": "class Solution {\n    public int numIslands(char[][] grid) {\n        return 0;\n    }\n}",
-            "cpp": "#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    int numIslands(vector<vector<char>>& grid) {\n        return 0;\n    }\n};"
+            "cpp": "#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    int numIslands(vector<vector<char>>& grid) {\n        return 0;\n}\n};"
         },
         "testCases": {
             "public": [{"input": "[[\"1\",\"1\",\"0\"],[\"1\",\"1\",\"0\"],[\"0\",\"0\",\"1\"]]", "expected": "2"}],
@@ -303,94 +341,34 @@ QUESTION_BANK = [
             "hidden": [{"input": "[2]\n3", "expected": "-1"}]
         }
     },
-    {
-        "id": "q3",
-        "title": "Trapping Rain Water",
-        "topic": "Two Pointers",
-        "difficulty": "Hard",
-        "description": "Given non-negative integers representing an elevation map where the width of each bar is 1, compute how much water it can trap after raining.",
-        "constraints": ["1 <= n <= 2 * 10^4"],
-        "examples": [{"input": "height = [0,1,0,2,1,0,1,3,2,1,2,1]", "output": "6"}],
-        "functionName": "trap",
-        "arguments": ["height"],
-        "argTypes": ["list[int]"],
-        "returnType": "int",
-        "starterCode": {
-            "python": "def trap(height: list[int]) -> int:\n    pass",
-            "java": "class Solution {\n    public int trap(int[] height) {\n        return 0;\n    }\n}",
-            "cpp": "#include <vector>\nusing namespace std;\n\nclass Solution {\npublic:\n    int trap(vector<int>& height) {\n        return 0;\n    }\n};"
-        },
-        "testCases": {
-            "public": [{"input": "[0,1,0,2,1,0,1,3,2,1,2,1]", "expected": "6"}],
-            "hidden": [{"input": "[4,2,0,3,2,5]", "expected": "9"}]
-        }
-    },
 ]
 
-def validate_questions(questions: list) -> bool:
+def generate_dsa_questions(candidate_profile: dict = None, max_retries: int = 3) -> list:
     """
-    Validates that the generated questions conform to the required schema.
-    """
-    if len(questions) != 3:
-        print(f"[Validator] Expected 3 questions, got {len(questions)}")
-        return False
-    required_keys = ["id", "title", "topic", "difficulty", "description", "constraints", "examples", "functionName", "arguments", "argTypes", "returnType", "testCases"]
-    for idx, q in enumerate(questions):
-        missing_keys = [k for k in required_keys if k not in q]
-        if missing_keys:
-            print(f"[Validator] Question {idx+1} missing keys: {missing_keys}")
-            return False
-        if not all(tc in q["testCases"] for tc in ["public", "hidden"]):
-            print(f"[Validator] Question {idx+1} missing public/hidden test cases")
-            return False
-    print("[Validator] All 3 questions passed validation!")
-    return True
-
-def build_starter_code(function_name: str, arguments: list, arg_types: list, return_type: str) -> dict:
-    """
-    Dynamically constructs valid starter code for Python, Java, and C++
-    """
-    py_types = {"int": "int", "float": "float", "double": "float", "string": "str", "str": "str", "bool": "bool", "boolean": "bool", "list[int]": "list[int]", "list[str]": "list[str]", "list[list[str]]": "list[list[str]]", "list[list[int]]": "list[list[int]]"}
-    
-    java_types = {"int": "int", "float": "float", "double": "double", "string": "String", "str": "String", "bool": "boolean", "boolean": "boolean", "list[int]": "int[]", "list[str]": "String[]", "list[list[int]]": "List<List<Integer>>", "list[list[str]]": "List<List<String>>"}
-    java_defaults = {"int": "0", "float": "0.0f", "double": "0.0", "String": '""', "boolean": "false", "int[]": "new int[]{}", "String[]": "new String[]{}", "List<List<Integer>>": "new ArrayList<>()"}
-
-    cpp_types = {"int": "int", "float": "float", "double": "double", "string": "string", "str": "string", "bool": "bool", "boolean": "bool", "list[int]": "vector<int>", "list[str]": "vector<string>", "list[list[int]]": "vector<vector<int>>", "list[list[str]]": "vector<vector<string>>"}
-
-    # Python starter
-    py_args = [f"{name}: {py_types.get(t.lower(), 'any')}" for name, t in zip(arguments, arg_types)]
-    py_ret = py_types.get(return_type.lower(), "any")
-    py_code = f"def {function_name}({', '.join(py_args)}) -> {py_ret}:\n    pass"
-
-    # Java starter
-    java_args = [f"{java_types.get(t.lower(), 'Object')} {name}" for name, t in zip(arguments, arg_types)]
-    java_ret = java_types.get(return_type.lower(), "void")
-    java_ret_default = java_defaults.get(java_ret, "null")
-    java_imports = "import java.util.*;\n\n" if "List" in java_ret or any("List" in java_types.get(t.lower(), "") for t in arg_types) else ""
-    java_code = f"{java_imports}class Solution {{\n    public {java_ret} {function_name}({', '.join(java_args)}) {{\n        return {java_ret_default};\n    }}\n}}"
-
-    # C++ starter
-    cpp_args = [f"{cpp_types.get(t.lower(), 'auto')} {name}" for name, t in zip(arguments, arg_types)]
-    cpp_ret = cpp_types.get(return_type.lower(), "void")
-    cpp_includes = "#include <vector>\n#include <string>\nusing namespace std;\n\n"
-    cpp_code = f"{cpp_includes}class Solution {{\npublic:\n    {cpp_ret} {function_name}({', '.join(cpp_args)}) {{\n        return {{}};\n    }}\n}};"
-
-    return {
-        "python": py_code,
-        "java": java_code,
-        "cpp": cpp_code
-    }
-
-def generate_dsa_questions(candidate_profile: dict = None) -> list:
-    """
-    Generates 3 unique DSA questions using AI only. 
-    No fallback to static QUESTION_BANK - returns error if AI fails completely.
+    Generates 3 unique DSA questions using AI only with retry mechanism and proper error handling.
+    No fallback to static QUESTION_BANK - raises detailed error if all attempts fail.
 
     The skill profile (if present) is injected into the prompt so the
     scenario + examples can be tailored to the candidate's declared skills
     (e.g. a candidate with React+Node.js gets an e-commerce scenario; a
     candidate with Python+ML gets a data-pipeline scenario).
+    
+    Args:
+        candidate_profile: Dict containing candidate skills and experience
+        max_retries: Maximum number of retry attempts for each model
+    
+    Returns:
+        List of 3 generated DSA questions
+    
+    Raises:
+        ValueError: If API key is not configured
+        RuntimeError: If all AI models fail after retries
     """
+    operation_id = f"oa_gen_{int(time.time() * 1000)}"
+    
+    # Log operation start
+    logger.info(f"[{operation_id}] Starting OA question generation")
+    
     # Pull the dynamic skill profile (set by the Full Interview orchestrator)
     skill_block = ""
     skill_anchor = ""
@@ -402,8 +380,10 @@ def generate_dsa_questions(candidate_profile: dict = None) -> list:
             skill_anchor = f" The candidate's primary declared skills are: {', '.join(primary[:3])}. Tailor the scenario and problem framing to those skills."
 
     if not API_KEY:
-        print("[OA AI Generator] No API key configured. Cannot generate questions without AI.")
-        raise ValueError("API key is required for OA question generation. Static question banks are not supported.")
+        logger.error(f"[{operation_id}] No API key configured. Cannot generate questions without AI.")
+        raise ValueError("API key is required for OA question generation. Static question banks are not supported. Please set OPENROUTER_API_KEY or GEMINI_API_KEY in your environment.")
+
+    logger.info(f"[{operation_id}] API key configured, attempting AI generation with {max_retries} retries per model")
 
     categories_q1 = ["Arrays & Hashing", "Two Pointers", "Stack", "Binary Search"]
     categories_q2 = ["Sliding Window", "Trees", "Backtracking", "Graphs BFS/DFS"]
@@ -440,80 +420,127 @@ def generate_dsa_questions(candidate_profile: dict = None) -> list:
         "google/gemini-2.5-flash",
     ]
 
-    for model in models:
-        try:
-            print(f"[OA AI Generator] Attempting with model: {model}...")
-            
-            if not API_KEY.startswith("sk-or-"):
-                # Gemini API
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
-                payload = {
-                    "contents": [{"parts": [{"text": prompt}]}],
-                    "generationConfig": {"responseMimeType": "application/json"}
-                }
-                headers = {"Content-Type": "application/json"}
-            else:
-                # OpenRouter API
-                url = "https://openrouter.ai/api/v1/chat/completions"
-                payload = {
-                    "model": model,
-                    "messages": [{"role": "user", "content": prompt}],
-                    "response_format": {"type": "json_object"},
-                    "temperature": 0.7,
-                    "max_tokens": 3000
-                }
-                headers = {
-                    "Authorization": f"Bearer {API_KEY}",
-                    "Content-Type": "application/json",
-                }
-
-            res = requests.post(url, headers=headers, json=payload, timeout=30)
-            
-            if res.status_code == 200:
-                data = res.json()
-                raw_text = ""
+    for model_idx, model in enumerate(models):
+        for retry in range(max_retries):
+            try:
+                logger.info(f"[{operation_id}] Attempting model {model} (attempt {retry + 1}/{max_retries})")
                 
-                if "choices" in data and len(data["choices"]) > 0:
-                    raw_text = data["choices"][0]["message"]["content"]
-                elif "candidates" in data and len(data["candidates"]) > 0:
-                    raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
-
-                # Clean up markdown
-                raw_text = raw_text.strip()
-                for marker in ["```json", "```"]:
-                    if raw_text.startswith(marker):
-                        raw_text = raw_text[len(marker):]
-                if raw_text.endswith("```"):
-                    raw_text = raw_text[:-3]
-                raw_text = raw_text.strip()
-
-                # Parse JSON safely
-                parsed = safe_json_parse(raw_text)
-                questions = parsed.get("questions", [])
-
-                if validate_questions(questions):
-                    # Build starter codes
-                    for idx, q in enumerate(questions, 1):
-                        q["id"] = f"q{idx}"
-                        q["starterCode"] = build_starter_code(
-                            q["functionName"],
-                            q["arguments"],
-                            q["argTypes"],
-                            q["returnType"]
-                        )
-                    print(f"[OA AI Generator] SUCCESS with {model}!")
-                    return questions
+                if not API_KEY.startswith("sk-or-"):
+                    # Gemini API
+                    url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={API_KEY}"
+                    payload = {
+                        "contents": [{"parts": [{"text": prompt}]}],
+                        "generationConfig": {"responseMimeType": "application/json"}
+                    }
+                    headers = {"Content-Type": "application/json"}
                 else:
-                    print(f"[OA AI Generator] Validation failed for {model}")
-            else:
-                print(f"[OA AI Generator] {model} returned {res.status_code}")
-                
-        except Exception as e:
-            print(f"[OA AI Generator] Error with {model}: {str(e)[:100]}")
+                    # OpenRouter API
+                    url = "https://openrouter.ai/api/v1/chat/completions"
+                    payload = {
+                        "model": model,
+                        "messages": [{"role": "user", "content": prompt}],
+                        "response_format": {"type": "json_object"},
+                        "temperature": 0.7,
+                        "max_tokens": 3000
+                    }
+                    headers = {
+                        "Authorization": f"Bearer {API_KEY}",
+                        "Content-Type": "application/json"
+                    }
 
-    # All AI models failed - raise error instead of using static questions
-    print("[OA AI Generator] All AI models failed. Cannot generate questions without AI.")
-    raise RuntimeError("All AI question generation models failed. Static question banks are not supported. Please check API configuration and try again.")
+                res = requests.post(url, headers=headers, json=payload, timeout=30)
+                
+                if res.status_code == 200:
+                    data = res.json()
+                    raw_text = ""
+                    
+                    if "choices" in data and len(data["choices"]) > 0:
+                        raw_text = data["choices"][0]["message"]["content"]
+                    elif "candidates" in data and len(data["candidates"]) > 0:
+                        raw_text = data["candidates"][0]["content"]["parts"][0]["text"]
+
+                    # Clean up markdown
+                    raw_text = raw_text.strip()
+                    for marker in ["```json", "```"]:
+                        if raw_text.startswith(marker):
+                            raw_text = raw_text[len(marker):]
+                    if raw_text.endswith("```"):
+                        raw_text = raw_text[:-3]
+                    raw_text = raw_text.strip()
+
+                    # Parse JSON safely
+                    parsed = safe_json_parse(raw_text)
+                    questions = parsed.get("questions", [])
+
+                    if validate_questions(questions):
+                        # Build starter codes
+                        for idx, q in enumerate(questions, 1):
+                            q["id"] = f"q{idx}"
+                            q["starterCode"] = build_starter_code(
+                                q["functionName"],
+                                q["arguments"],
+                                q["argTypes"],
+                                q["returnType"]
+                            )
+                        
+                        logger.info(f"[{operation_id}] SUCCESS with {model} on attempt {retry + 1}")
+                        logger.info(f"[{operation_id}] Generated {len(questions)} questions successfully")
+                        
+                        return questions
+                    else:
+                        logger.warning(f"[{operation_id}] Validation failed for {model} on attempt {retry + 1}")
+                        if retry < max_retries - 1:
+                            logger.info(f"[{operation_id}] Retrying {model}...")
+                            time.sleep(2 ** retry)  # Exponential backoff
+                else:
+                    logger.warning(f"[{operation_id}] {model} returned HTTP {res.status_code} on attempt {retry + 1}")
+                    if res.status_code == 402:
+                        logger.error(f"[{operation_id}] HTTP 402 - Payment Required. API key lacks credits or permissions for {model}")
+                        logger.error(f"[{operation_id}] Check your OpenRouter account balance and model access permissions")
+                    if retry < max_retries - 1:
+                        logger.info(f"[{operation_id}] Retrying {model}...")
+                        time.sleep(2 ** retry)
+                        
+            except requests.exceptions.Timeout as e:
+                logger.error(f"[{operation_id}] Timeout error with {model} on attempt {retry + 1}: {str(e)}")
+                if retry < max_retries - 1:
+                    logger.info(f"[{operation_id}] Retrying {model} after timeout...")
+                    time.sleep(2 ** retry)
+                    
+            except requests.exceptions.ConnectionError as e:
+                logger.error(f"[{operation_id}] Connection error with {model} on attempt {retry + 1}: {str(e)}")
+                if retry < max_retries - 1:
+                    logger.info(f"[{operation_id}] Retrying {model} after connection error...")
+                    time.sleep(2 ** retry)
+                    
+            except requests.exceptions.HTTPError as e:
+                logger.error(f"[{operation_id}] HTTP error with {model} on attempt {retry + 1}: {str(e)}")
+                if retry < max_retries - 1:
+                    logger.info(f"[{operation_id}] Retrying {model} after HTTP error...")
+                    time.sleep(2 ** retry)
+                    
+            except Exception as e:
+                logger.error(f"[{operation_id}] Unexpected error with {model} on attempt {retry + 1}: {str(e)}")
+                if retry < max_retries - 1:
+                    logger.info(f"[{operation_id}] Retrying {model} after unexpected error...")
+                    time.sleep(2 ** retry)
+
+    # All AI models failed - raise detailed error
+    error_details = []
+    error_details.append(f"API configuration: {'Configured' if API_KEY else 'Not configured'}")
+    
+    # Check if this is likely a payment/credits issue
+    if any("402" in str(e) for e in [getattr(requests.exceptions.HTTPError, 'message', '')]):
+        error_details.append("HTTP 402 (Payment Required) errors detected - likely API key lacks credits or model access permissions")
+        error_details.append("Please check your OpenRouter account balance and model access")
+    
+    error_message = (
+        f"All AI question generation models failed after {max_retries} retries per model. "
+        f"{' '.join(error_details)}. "
+        f"Please check: 1) API key validity, 2) Account balance/credits, 3) Model access permissions, 4) Network connectivity."
+    )
+    logger.error(f"[{operation_id}] {error_message}")
+    raise RuntimeError(error_message)
 
 
 if __name__ == "__main__":

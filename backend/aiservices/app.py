@@ -6,7 +6,7 @@ from flask_cors import CORS
 import uuid
 import os
 import sys
-from datetime import datetime
+from datetime import datetime, timezone
 from dotenv import load_dotenv
 
 
@@ -68,6 +68,99 @@ def home():
             "Vireza ATS API is running"
 
     })
+
+
+# =========================
+# AI SERVICE HEALTH CHECK
+# =========================
+
+@app.route("/api/health/ai-services", methods=["GET"])
+def check_ai_services_health():
+    """Check if AI services are accessible and properly configured."""
+    import requests
+    
+    health_status = {
+        "overall_status": "healthy",
+        "services": {},
+        "configuration": {},
+        "timestamp": datetime.now(timezone.utc).isoformat()
+    }
+    
+    # Check API configuration
+    openrouter_key = os.getenv("OPENROUTER_API_KEY")
+    gemini_key = os.getenv("GEMINI_API_KEY")
+    
+    health_status["configuration"] = {
+        "openrouter_configured": bool(openrouter_key),
+        "gemini_configured": bool(gemini_key),
+        "any_api_configured": bool(openrouter_key or gemini_key)
+    }
+    
+    # Test OpenRouter connectivity
+    if openrouter_key:
+        try:
+            test_response = requests.post(
+                "https://openrouter.ai/api/v1/chat/completions",
+                headers={
+                    "Authorization": f"Bearer {openrouter_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": "meta-llama/llama-3.3-70b-instruct",
+                    "messages": [{"role": "user", "content": "health check"}],
+                    "max_tokens": 10
+                },
+                timeout=10
+            )
+            health_status["services"]["openrouter"] = {
+                "status": "healthy" if test_response.status_code == 200 else "unhealthy",
+                "status_code": test_response.status_code,
+                "response_time_ms": test_response.elapsed.total_seconds() * 1000
+            }
+        except Exception as e:
+            health_status["services"]["openrouter"] = {
+                "status": "error",
+                "error": str(e)
+            }
+            health_status["overall_status"] = "degraded"
+    else:
+        health_status["services"]["openrouter"] = {
+            "status": "not_configured"
+        }
+    
+    # Test Gemini connectivity
+    if gemini_key:
+        try:
+            test_response = requests.post(
+                f"https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key={gemini_key}",
+                headers={"Content-Type": "application/json"},
+                json={
+                    "contents": [{"parts": [{"text": "health check"}]}],
+                    "generationConfig": {"responseMimeType": "application/json"}
+                },
+                timeout=10
+            )
+            health_status["services"]["gemini"] = {
+                "status": "healthy" if test_response.status_code == 200 else "unhealthy",
+                "status_code": test_response.status_code,
+                "response_time_ms": test_response.elapsed.total_seconds() * 1000
+            }
+        except Exception as e:
+            health_status["services"]["gemini"] = {
+                "status": "error",
+                "error": str(e)
+            }
+            health_status["overall_status"] = "degraded"
+    else:
+        health_status["services"]["gemini"] = {
+            "status": "not_configured"
+        }
+    
+    # If no AI services are configured, mark as degraded
+    if not health_status["configuration"]["any_api_configured"]:
+        health_status["overall_status"] = "degraded"
+    
+    return jsonify(health_status)
 
 
 # =========================
@@ -364,8 +457,58 @@ def oa_start():
         # Extract Candidate Technical Profile
         candidate_profile = extract_resume_info(text)
 
-        # Generate 3 DSA Questions via Gemini
-        questions = generate_dsa_questions(candidate_profile)
+        # Generate 3 DSA Questions via AI with retry mechanism
+        try:
+            questions = generate_dsa_questions(candidate_profile)
+        except ValueError as e:
+            # API configuration error
+            return jsonify({
+                "status": "error",
+                "error_type": "API_CONFIGURATION_ERROR",
+                "message": str(e),
+                "suggested_actions": [
+                    "Check that your API key is properly configured in the environment",
+                    "Set OPENROUTER_API_KEY or GEMINI_API_KEY in your .env file",
+                    "Restart the server after updating environment variables"
+                ]
+            }), 500
+        except RuntimeError as e:
+            # AI generation failed
+            error_message = str(e)
+            error_type = "AI_GENERATION_FAILED"
+            suggested_actions = [
+                "Check your internet connection",
+                "Verify AI service status (OpenRouter/Gemini)",
+                "Check API key validity and permissions"
+            ]
+            
+            # Check if this is a payment/credits issue
+            if "402" in error_message or "Payment Required" in error_message:
+                error_type = "API_CREDITS_ERROR"
+                suggested_actions = [
+                    "Check your OpenRouter account balance at https://openrouter.ai/credits",
+                    "Ensure your API key has sufficient credits for the models being used",
+                    "Verify your API key has access to the specific models (meta-llama/llama-3.3-70b-instruct, qwen/qwen-2.5-coder-32b-instruct)",
+                    "Add credits to your OpenRouter account if needed"
+                ]
+            
+            return jsonify({
+                "status": "error",
+                "error_type": error_type,
+                "message": error_message,
+                "suggested_actions": suggested_actions
+            }), 500
+        except Exception as e:
+            # Unexpected error
+            return jsonify({
+                "status": "error",
+                "error_type": "UNEXPECTED_ERROR",
+                "message": f"Unexpected error during question generation: {str(e)}",
+                "suggested_actions": [
+                    "Check server logs for detailed error information",
+                    "Contact support if the issue persists"
+                ]
+            }), 500
 
         # Initialize Session
         session_id = str(uuid.uuid4())
@@ -378,7 +521,15 @@ def oa_start():
         })
     except Exception as e:
         print("[OA API Start Error]", str(e))
-        return jsonify({"status": "error", "message": str(e)}), 500
+        return jsonify({
+            "status": "error",
+            "error_type": "SESSION_INIT_ERROR",
+            "message": f"Failed to initialize OA session: {str(e)}",
+            "suggested_actions": [
+                "Check server logs for detailed error information",
+                "Verify all required services are running"
+            ]
+        }), 500
 
 
 @app.route("/api/oa/<session_id>", methods=["GET"])
@@ -556,5 +707,5 @@ register_full_interview_routes(app)
 # RUN SERVER
 # =========================
 
-if __name__ == "__main__":
-    app.run(debug=True, port=5001)
+if __name__ == '__main__':
+    app.run(host='0.0.0.0', port=5001, debug=False)

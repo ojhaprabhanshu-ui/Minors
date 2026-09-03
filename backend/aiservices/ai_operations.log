@@ -695,3 +695,34 @@
 2026-09-03 16:07:51,225 - oa.gemini_generator - INFO - [oa_gen_1788431833614] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
 2026-09-03 16:07:51,226 - oa.gemini_generator - INFO - [oa_gen_1788431833614] Generated 3 questions successfully
 2026-09-03 16:07:51,229 - werkzeug - INFO - 127.0.0.1 - - [03/Sep/2026 16:07:51] "POST /api/oa/start HTTP/1.1" 200 -
+2026-09-03 16:15:41,505 - waitress - INFO - Serving on http://0.0.0.0:5001
+2026-09-03 16:16:44,549 - oa.gemini_generator - INFO - [oa_gen_1788432404549] Starting OA question generation
+2026-09-03 16:16:44,550 - oa.gemini_generator - INFO - [oa_gen_1788432404549] API key configured, attempting AI generation with 3 retries per model
+2026-09-03 16:16:44,550 - oa.gemini_generator - INFO - [oa_gen_1788432404549] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/3)
+2026-09-03 16:16:46,470 - oa.gemini_generator - INFO - [oa_gen_1788432406470] Starting OA question generation
+2026-09-03 16:16:46,471 - oa.gemini_generator - INFO - [oa_gen_1788432406470] API key configured, attempting AI generation with 3 retries per model
+2026-09-03 16:16:46,471 - oa.gemini_generator - INFO - [oa_gen_1788432406470] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/3)
+2026-09-03 16:16:51,918 - oa.gemini_generator - INFO - [oa_gen_1788432404549] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
+2026-09-03 16:16:51,918 - oa.gemini_generator - INFO - [oa_gen_1788432404549] Generated 3 questions successfully
+2026-09-03 16:16:55,088 - oa.gemini_generator - INFO - [oa_gen_1788432406470] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
+2026-09-03 16:16:55,088 - oa.gemini_generator - INFO - [oa_gen_1788432406470] Generated 3 questions successfully
+2026-09-03 16:17:10,259 - oa.gemini_generator - INFO - [oa_gen_1788432430258] Starting OA question generation
+2026-09-03 16:17:10,260 - oa.gemini_generator - INFO - [oa_gen_1788432430260] Starting OA question generation
+2026-09-03 16:17:10,260 - oa.gemini_generator - INFO - [oa_gen_1788432430258] API key configured, attempting AI generation with 3 retries per model
+2026-09-03 16:17:10,260 - oa.gemini_generator - INFO - [oa_gen_1788432430260] API key configured, attempting AI generation with 3 retries per model
+2026-09-03 16:17:10,261 - oa.gemini_generator - INFO - [oa_gen_1788432430258] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/3)
+2026-09-03 16:17:10,261 - oa.gemini_generator - INFO - [oa_gen_1788432430260] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/3)
+2026-09-03 16:17:12,117 - oa.gemini_generator - INFO - [oa_gen_1788432432117] Starting OA question generation
+2026-09-03 16:17:12,117 - oa.gemini_generator - INFO - [oa_gen_1788432432117] API key configured, attempting AI generation with 3 retries per model
+2026-09-03 16:17:12,117 - oa.gemini_generator - INFO - [oa_gen_1788432432117] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/3)
+2026-09-03 16:18:05,224 - oa.gemini_generator - INFO - [oa_gen_1788432432117] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
+2026-09-03 16:18:05,224 - oa.gemini_generator - INFO - [oa_gen_1788432432117] Generated 3 questions successfully
+2026-09-03 16:18:10,254 - oa.gemini_generator - INFO - [oa_gen_1788432490254] Starting OA question generation
+2026-09-03 16:18:10,254 - oa.gemini_generator - INFO - [oa_gen_1788432490254] API key configured, attempting AI generation with 3 retries per model
+2026-09-03 16:18:10,254 - oa.gemini_generator - INFO - [oa_gen_1788432490254] Attempting model meta-llama/llama-3.3-70b-instruct (attempt 1/3)
+2026-09-03 16:18:53,534 - oa.gemini_generator - INFO - [oa_gen_1788432430258] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
+2026-09-03 16:18:53,534 - oa.gemini_generator - INFO - [oa_gen_1788432430258] Generated 3 questions successfully
+2026-09-03 16:19:24,886 - oa.gemini_generator - INFO - [oa_gen_1788432490254] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
+2026-09-03 16:19:24,887 - oa.gemini_generator - INFO - [oa_gen_1788432490254] Generated 3 questions successfully
+2026-09-03 16:19:26,675 - oa.gemini_generator - INFO - [oa_gen_1788432430260] SUCCESS with meta-llama/llama-3.3-70b-instruct on attempt 1
+2026-09-03 16:19:26,675 - oa.gemini_generator - INFO - [oa_gen_1788432430260] Generated 3 questions successfully

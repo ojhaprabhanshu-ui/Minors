@@ -1,64 +1,24 @@
-import React, { useState } from "react";
+import React from "react";
+import { createExperience } from "../ResumeContext";
 
-const Experience = ({ formData, setFormData, prevStep, handleSubmit }) => {
-  const [errors, setErrors] = useState({
-    jobTitle: "",
-    company: "",
-    numberofyears: "",
-  });
+const LIST_KEY = "experiences";
 
-  const handleChange = (e) => {
-    const { name, value } = e.target;
+const inputClass =
+  "w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm";
 
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+const labelClass = "block text-xs font-semibold text-slate-600 mb-1";
 
-    // Clear field-specific error as user types
-    setErrors((prev) => ({
-      ...prev,
-      [name]: "",
-    }));
+const Experience = ({ formData, nextStep, prevStep, addEntry, updateEntry, removeEntry }) => {
+  const experiences = Array.isArray(formData.experiences) ? formData.experiences : [];
+
+  const handleChange = (id) => (event) => {
+    const { name, value } = event.target;
+    updateEntry(LIST_KEY, id, { [name]: value });
   };
 
-  const handleFinalSubmit = (e) => {
-    e.preventDefault();
-
-    let newErrors = {
-      jobTitle: "",
-      company: "",
-      numberofyears: "",
-    };
-
-    let valid = true;
-
-    // Job Title Validation
-    if (!formData?.jobTitle?.trim()) {
-      newErrors.jobTitle = "Job Title is required";
-      valid = false;
-    }
-
-    // Company Name Validation
-    if (!formData?.company?.trim()) {
-      newErrors.company = "Company Name is required";
-      valid = false;
-    }
-
-    // Number of Years Validation (Safely handling string or number type)
-    const rawYears = formData?.numberofyears != null ? String(formData.numberofyears).trim() : "";
-    if (!rawYears) {
-      newErrors.numberofyears = "Number of years is required";
-      valid = false;
-    } else if (isNaN(rawYears) || Number(rawYears) <= 0) {
-      newErrors.numberofyears = "Please enter a valid number of years";
-      valid = false;
-    }
-
-    setErrors(newErrors);
-
-    if (!valid) return;
-    handleSubmit();
+  const handlePresentChange = (id) => (event) => {
+    const isPresent = event.target.checked;
+    updateEntry(LIST_KEY, id, isPresent ? { isPresent, endDate: "" } : { isPresent });
   };
 
   return (
@@ -66,124 +26,171 @@ const Experience = ({ formData, setFormData, prevStep, handleSubmit }) => {
       {/* Step Header */}
       <div className="mb-6">
         <h2 className="text-2xl font-bold text-slate-800">
-          Step 3: Job Experience
+          Step 3: Work Experience
+          <span className="ml-2 align-middle text-xs font-semibold text-slate-400">OPTIONAL</span>
         </h2>
         <p className="text-sm text-slate-500 mt-1">
-          Add your professional details to complete your resume.
+          Students and fresh graduates can skip this section entirely — add projects on the next step
+          instead.
         </p>
       </div>
 
-      {/* Form Body */}
-      <form onSubmit={handleFinalSubmit} className="space-y-4">
-        {/* Job Title */}
-        <div>
-          <label
-            htmlFor="jobTitle"
-            className="block text-xs font-semibold text-slate-600 mb-1"
+      <div className="space-y-4">
+        {experiences.map((experience, index) => (
+          <div
+            key={experience.id}
+            className="rounded-xl border border-slate-200 bg-slate-50/60 p-4 shadow-sm"
           >
-            Job Title <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="jobTitle"
-            id="jobTitle"
-            value={formData?.jobTitle || ""}
-            onChange={handleChange}
-            placeholder="Frontend Developer"
-            className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
-          />
-          {errors.jobTitle && (
-            <p className="text-rose-500 text-xs mt-1 font-medium">
-              {errors.jobTitle}
-            </p>
-          )}
-        </div>
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-500">
+                Experience {index + 1}
+              </p>
+              {experiences.length > 1 && (
+                <button
+                  type="button"
+                  onClick={() => removeEntry(LIST_KEY, experience.id)}
+                  className="rounded-lg bg-rose-50 px-3 py-1.5 text-xs font-semibold text-rose-600 transition-colors hover:bg-rose-100"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
 
-        {/* Company Name */}
-        <div>
-          <label
-            htmlFor="company"
-            className="block text-xs font-semibold text-slate-600 mb-1"
-          >
-            Company Name <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            name="company"
-            id="company"
-            value={formData?.company || ""}
-            onChange={handleChange}
-            placeholder="Tech Corp"
-            className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
-          />
-          {errors.company && (
-            <p className="text-rose-500 text-xs mt-1 font-medium">
-              {errors.company}
-            </p>
-          )}
-        </div>
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className={labelClass} htmlFor={`${experience.id}-jobTitle`}>
+                  Job Title
+                </label>
+                <input
+                  type="text"
+                  id={`${experience.id}-jobTitle`}
+                  name="jobTitle"
+                  value={experience.jobTitle || ""}
+                  onChange={handleChange(experience.id)}
+                  placeholder="Frontend Developer"
+                  className={inputClass}
+                />
+              </div>
 
-        {/* Number of Years */}
-        <div>
-          <label
-            htmlFor="numberofyears"
-            className="block text-xs font-semibold text-slate-600 mb-1"
-          >
-            Number of Years <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="number"
-            name="numberofyears"
-            id="numberofyears"
-            value={formData?.numberofyears || ""}
-            onChange={handleChange}
-            placeholder="e.g. 2"
-            min="1"
-            className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
-          />
-          {errors.numberofyears && (
-            <p className="text-rose-500 text-xs mt-1 font-medium">
-              {errors.numberofyears}
-            </p>
-          )}
-        </div>
+              <div>
+                <label className={labelClass} htmlFor={`${experience.id}-company`}>
+                  Company Name
+                </label>
+                <input
+                  type="text"
+                  id={`${experience.id}-company`}
+                  name="company"
+                  value={experience.company || ""}
+                  onChange={handleChange(experience.id)}
+                  placeholder="Tech Corp"
+                  className={inputClass}
+                />
+              </div>
 
-        {/* Job Description */}
-        <div>
-          <label
-            htmlFor="jobDescription"
-            className="block text-xs font-semibold text-slate-600 mb-1"
-          >
-            Job Description
-          </label>
-          <textarea
-            name="jobDescription"
-            id="jobDescription"
-            rows="3"
-            value={formData?.jobDescription || ""}
-            onChange={handleChange}
-            placeholder="Describe key responsibilities and achievements..."
-            className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm resize-none"
-          />
-        </div>
+              <div>
+                <label className={labelClass} htmlFor={`${experience.id}-location`}>
+                  Location
+                </label>
+                <input
+                  type="text"
+                  id={`${experience.id}-location`}
+                  name="location"
+                  value={experience.location || ""}
+                  onChange={handleChange(experience.id)}
+                  placeholder="Pune, India"
+                  className={inputClass}
+                />
+              </div>
 
-        {/* Navigation Buttons */}
-        <div className="flex items-center justify-between gap-3 pt-4 border-t border-slate-100">
-          <button
-            type="button"
-            onClick={prevStep}
-            className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-sm py-2 transition-all active:scale-[0.98]"
-          >
-            Back
-          </button>
-          <button
-            type="submit"
-            className="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm py-2 transition-all shadow-sm active:scale-[0.98]"
-          >
-            Complete Resume
-          </button>
-        </div>
-      </form>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className={labelClass} htmlFor={`${experience.id}-startDate`}>
+                    Start Date
+                  </label>
+                  <input
+                    type="month"
+                    id={`${experience.id}-startDate`}
+                    name="startDate"
+                    value={experience.startDate || ""}
+                    onChange={handleChange(experience.id)}
+                    className={inputClass}
+                  />
+                </div>
+
+                <div>
+                  <label className={labelClass} htmlFor={`${experience.id}-endDate`}>
+                    End Date
+                  </label>
+                  <input
+                    type="month"
+                    id={`${experience.id}-endDate`}
+                    name="endDate"
+                    value={experience.isPresent ? "" : experience.endDate || ""}
+                    disabled={experience.isPresent}
+                    onChange={handleChange(experience.id)}
+                    className={`${inputClass} disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-400`}
+                  />
+                </div>
+              </div>
+            </div>
+
+            <label className="mt-3 flex cursor-pointer items-center gap-2 text-xs font-medium text-slate-600">
+              <input
+                type="checkbox"
+                checked={Boolean(experience.isPresent)}
+                onChange={handlePresentChange(experience.id)}
+                className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+              />
+              I currently work here
+            </label>
+
+            <div className="mt-3">
+              <label className={labelClass} htmlFor={`${experience.id}-responsibilities`}>
+                Responsibilities / Achievements
+              </label>
+              <textarea
+                id={`${experience.id}-responsibilities`}
+                name="responsibilities"
+                rows="4"
+                value={experience.responsibilities || ""}
+                onChange={handleChange(experience.id)}
+                placeholder={"Built a component library used by 4 product teams\nCut page load time by 35%"}
+                className={`${inputClass} resize-none`}
+              />
+              <p className="text-slate-400 text-xs mt-1">
+                One achievement per line — each line becomes a bullet on your resume.
+              </p>
+            </div>
+          </div>
+        ))}
+
+        <button
+          type="button"
+          onClick={() => addEntry(LIST_KEY, createExperience)}
+          className="w-full rounded-lg border border-dashed border-blue-300 bg-blue-50/50 py-2.5 text-xs font-semibold text-blue-600 transition-colors hover:border-blue-400 hover:bg-blue-50"
+        >
+          + Add another experience
+        </button>
+      </div>
+
+      {/* Navigation Buttons */}
+      <div className="flex items-center justify-between gap-3 pt-4 mt-2 border-t border-slate-100">
+        <button
+          type="button"
+          onClick={prevStep}
+          className="w-1/3 bg-slate-100 hover:bg-slate-200 text-slate-700 font-medium rounded-lg text-sm py-2 transition-all active:scale-[0.98]"
+        >
+          Back
+        </button>
+
+        <button
+          type="button"
+          onClick={nextStep}
+          className="w-2/3 bg-blue-600 hover:bg-blue-700 text-white font-medium rounded-lg text-sm py-2 transition-all shadow-sm active:scale-[0.98]"
+        >
+          Next Step
+        </button>
+      </div>
     </div>
   );
 };

@@ -194,6 +194,24 @@ const Education = ({ formData, setFormData, nextStep, prevStep }) => {
           )}
         </div>
 
+        {/* Relevant Coursework (Optional) */}
+        <div>
+          <label htmlFor="coursework" className="block text-xs font-semibold text-slate-600 mb-1">
+            Relevant Coursework
+            <span className="ml-1.5 font-normal text-slate-400">(optional)</span>
+          </label>
+          <input
+            type="text"
+            name="coursework"
+            id="coursework"
+            value={formData.coursework || ""}
+            onChange={handleChange}
+            placeholder="Data Structures, Operating Systems, DBMS"
+            className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-500/20 transition-all shadow-sm"
+          />
+          <p className="text-slate-400 text-xs mt-1">Separate subjects with commas.</p>
+        </div>
+
         {/* Dynamic Skills Field */}
         <div>
           <label className="block text-xs font-semibold text-slate-600 mb-1">

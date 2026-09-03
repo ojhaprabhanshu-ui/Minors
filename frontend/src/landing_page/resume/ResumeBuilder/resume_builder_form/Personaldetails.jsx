@@ -206,6 +206,23 @@ const Personaldetails = ({ formData, setFormData, nextStep }) => {
           )}
         </div>
 
+        {/* Professional Summary (Optional) */}
+        <div className="w-full">
+          <label className="block text-xs font-semibold text-slate-600 mb-1">
+            Professional Summary / Objective
+            <span className="ml-1.5 font-normal text-slate-400">(optional)</span>
+          </label>
+          <textarea
+            name="summary"
+            id="summary"
+            rows="4"
+            value={formData.summary || ""}
+            onChange={handleChange}
+            placeholder="Two or three lines about who you are and what you are looking for next..."
+            className="w-full bg-white border border-slate-200 rounded-lg px-3.5 py-2 text-sm text-slate-800 placeholder-slate-400 outline-none transition-all duration-200 focus:border-amber-700 focus:ring-2 focus:ring-amber-700/10 shadow-sm resize-none"
+          />
+        </div>
+
         {/* Submit Button */}
         <button
           type="submit"

@@ -5,7 +5,7 @@ import Navbar from "./landing_page/Navbar";
 import Footer from "./landing_page/Footer";
 import Homepage from "./landing_page/home/Homepage";
 import ResumeATSpage from "./landing_page/resume/ResumeATS/ResumeATSpage";
-// import "./landing_page/css/App.css";     
+ 
 import Signup from "./landing_page/signup/Signup";
 import Login from "./landing_page/login/login_page";
 import ResumeBuildPage from "./landing_page/resume/ResumeBuilder/ResumeBuildpage";
@@ -17,8 +17,14 @@ import OAMainContainer from "./landing_page/OA/OAMainContainer";
 import TechnicalInterviewContainer from "./landing_page/technical_interview/TechnicalInterviewContainer";
 import HRInterviewContainer from "./landing_page/hr_interview/HRInterviewContainer";
 import FullInterviewContainer from "./landing_page/full_interview/FullInterviewContainer";
+
+// Blog Components
 import BlogPage from "./landing_page/Blog/Blogpage";
-import Resumeform from "./landing_page/resume/ResumeBuilder/resume_builder_form/Resumeform";
+import BLOG1 from "./landing_page/Blog/BLOG1";
+import BLOG2 from "./landing_page/Blog/BLOG2";
+import BLOG3 from "./landing_page/Blog/BLOG3";
+import BLOG4 from "./landing_page/Blog/BLOG4";
+import BLOG5 from "./landing_page/Blog/BLOG5";
 
 function App() {
   const location = useLocation();
@@ -43,8 +49,14 @@ function App() {
           <Route path="/technical-interview" element={<TechnicalInterviewContainer/>}/>
           <Route path="/hr-interview" element={<HRInterviewContainer/>}/>
           <Route path="/full-interview" element={<FullInterviewContainer/>}/>
+          
+          {/* Blog Routes */}
           <Route path="/blog" element={<BlogPage/>}/>
-          <Route path="/resume/builder/resumeform" element={<Resumeform/>}/>
+          <Route path="/blog/resume-vs-cover-letter" element={<BLOG1/>}/>
+          <Route path="/blog/international-cv-format" element={<BLOG2/>}/>
+          <Route path="/blog/60-soft-skills-for-resumes" element={<BLOG3/>}/>
+          <Route path="/blog/best-chatgpt-resume-prompts" element={<BLOG4/>}/>
+          <Route path="/blog/ats-ready-resume-builder-2026" element={<BLOG5/>}/>
         </Routes>
       </main>
 

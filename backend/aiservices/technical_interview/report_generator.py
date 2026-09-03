@@ -25,21 +25,32 @@ def safe_json_parse(raw_text: str):
 
 
 def build_report_context(session):
+    """
+    Build comprehensive answer-specific context for report generation.
+    This ensures the report is based on the candidate's actual responses.
+    """
     answers = session.get("answers", [])
     questions = session.get("questions", [])
+    candidate_profile = session.get("candidateProfile", {})
 
     qa_pairs = []
     for ans in answers:
         q = next((q for q in questions if q.get("id") == ans.get("questionId")), {})
         ev = ans.get("evaluation", {})
+        
+        # Extract the actual answer text with length for analysis
+        answer_text = ans.get("transcript", "")
+        answer_length = len(answer_text.strip()) if answer_text else 0
+        
         qa_pairs.append({
             "question_number": len(qa_pairs) + 1,
             "topic": q.get("topic", "General"),
             "difficulty": q.get("difficulty", "Medium"),
             "probe_focus": q.get("probe_focus", ""),
             "question": q.get("question", ""),
-            "transcript": ans.get("transcript", ""),
-            "candidate_answer": ans.get("transcript", ""),
+            "candidate_answer": answer_text,  # The actual answer provided
+            "answer_length": answer_length,       # Length analysis
+            "duration": ans.get("duration", 0),    # Time taken to answer
             "score": ev.get("score", 0),
             "technical_correctness": ev.get("technical_correctness", 0),
             "depth": ev.get("depth", 0),
@@ -55,8 +66,14 @@ def build_report_context(session):
 
     return {
         "candidate_role": session.get("targetRole", "Software Engineer"),
+        "candidate_skills": candidate_profile.get("skills", []),
         "total_questions": len(qa_pairs),
         "questions_answered": qa_pairs,
+        "answer_analysis": {
+            "total_answers": len(answers),
+            "avg_answer_length": sum(a["answer_length"] for a in qa_pairs) / len(qa_pairs) if qa_pairs else 0,
+            "total_duration": sum(a["duration"] for a in qa_pairs),
+        }
     }
 
 
@@ -75,10 +92,29 @@ def generate_final_report(session):
 
     prompt = f"""You are an expert technical interviewer generating a Technical Assessment Report for a Round 2 high-stakes interview.
 
-You MUST base the report strictly on the candidate's actual interview performance captured below. Do NOT use generic or placeholder text. Every claim must reference the actual transcripts and per-question evaluations.
+CRITICAL INSTRUCTION: Your analysis MUST be based ENTIRELY on the candidate's actual responses. You are to evaluate:
+1. The specific content and technical accuracy of each answer provided
+2. The depth of understanding demonstrated in their explanations
+3. Their ability to connect concepts and apply knowledge practically
+4. Their communication of technical ideas
 
-Interview Data:
-{json.dumps(context, indent=2)}
+YOU MUST NOT:
+- Use generic templates or placeholder text
+- Invent strengths or weaknesses not evident in the answers
+- Provide feedback that doesn't match the actual transcripts
+- Assume capabilities not demonstrated in the interview
+
+Candidate Profile:
+- Role: {context["candidate_role"]}
+- Skills: {context["candidate_skills"]}
+
+Answer Analysis Summary:
+- Total Questions Answered: {context["answer_analysis"]["total_answers"]}
+- Average Answer Length: {context["answer_analysis"]["avg_answer_length"]:.1f} characters
+- Total Time: {context["answer_analysis"]["total_duration"]} seconds
+
+Detailed Q&A Performance (ANALYZE EACH ANSWER'S ACTUAL RESPONSE):
+{json.dumps(context["questions_answered"], indent=2)}
 
 Interview termination reason: {end_reason}
 
@@ -88,26 +124,26 @@ Generate a structured JSON report with EXACTLY these sections:
   "overall_score": <0-100, computed from the per-question scores>,
   "verdict": "Strong Technical Performance | Satisfactory Technical Performance | Needs Improvement",
   "technical_proficiency_summary": {{
-    "data_structures_and_algorithms": <0-100>,
-    "system_design_and_architecture": <0-100>,
-    "databases_and_storage": <0-100>,
-    "networking_and_os": <0-100>,
-    "language_specific_depth": <0-100>,
-    "distributed_systems_thinking": <0-100>
+    "data_structures_and_algorithms": <0-100, based on actual answer quality>,
+    "system_design_and_architecture": <0-100, based on actual answer quality>,
+    "databases_and_storage": <0-100, based on actual answer quality>,
+    "networking_and_os": <0-100, based on actual answer quality>,
+    "language_specific_depth": <0-100, based on actual answer quality>,
+    "distributed_systems_thinking": <0-100, based on actual answer quality>
   }},
   "depth_of_understanding": {{
     "level": "WHY" | "HOW" | "SHALLOW",
     "score": <0-100>,
-    "analysis": "2-3 sentence analysis of whether the candidate understands WHY technologies work, not just HOW to use them.",
-    "evidence": ["specific quote or topic from the interview that supports this assessment", ...]
+    "analysis": "2-3 sentence analysis of whether the candidate understands WHY technologies work, not just HOW to use them, based on their actual answers",
+    "evidence": ["specific quote from candidate's answer that supports this assessment", ...]
   }},
   "strengths_and_knowledge_gaps": {{
     "strengths": [
-      "<specific area of expertise observed in the interview, with evidence from the transcript>",
+      "<specific technical strength clearly demonstrated in their actual answers>",
       ...
     ],
     "knowledge_gaps": [
-      "<specific area where the candidate struggled, with what was missing>",
+      "<specific technical gap or weakness observed in their actual answers>",
       ...
     ]
   }},
@@ -118,32 +154,32 @@ Generate a structured JSON report with EXACTLY these sections:
       "difficulty": "...",
       "probe_focus": "...",
       "question": "...",
-      "candidate_answer": "<verbatim transcript of the candidate's answer>",
-      "transcript": "<duplicate of candidate_answer for backward compat with the HR report schema>",
+      "candidate_answer": "<verbatim transcript of what the candidate actually said>",
+      "answer_quality": "excellent | good | adequate | poor | insufficient",
       "score": <0-10>,
-      "feedback": "...",
-      "strengths": [...],
-      "weaknesses": [...]
+      "feedback": "<specific feedback on their actual answer>",
+      "strengths": ["specific strengths observed in this answer"],
+      "weaknesses": ["specific weaknesses observed in this answer"]
     }}
   ],
   "topics_covered": ["unique topics from the questions"],
   "integrity_summary": "<summary of any monitoring events>",
   "recommendation": {{
     "decision": "Hire" | "No Hire" | "Follow-up Required",
-    "rationale": "2-3 sentence rationale grounded in the evidence above",
-    "evidence": ["specific signal that drove the decision", ...]
+    "rationale": "2-3 sentence rationale grounded in the evidence from their actual answers",
+    "evidence": ["specific performance examples from their answers that support this decision", ...]
   }},
-  "summary": "2-3 sentence personalized summary"
+  "summary": "2-3 sentence personalized summary based entirely on their actual interview performance"
 }}
 
 Calibration for the recommendation:
-- overall_score >= 80 with strong "WHY" depth signal: "Hire"
-- overall_score 60-79 OR mixed depth: "Follow-up Required"
-- overall_score < 60 OR shallow answers throughout: "No Hire"
+|- overall_score >= 80 with strong "WHY" depth signal: "Hire"
+|- overall_score 60-79 OR mixed depth: "Follow-up Required"
+|- overall_score < 60 OR shallow answers throughout: "No Hire"
 
-The depth_of_understanding.level is "WHY" if the candidate consistently explained trade-offs, internals, or failure modes; "HOW" if they described usage correctly but did not justify choices; "SHALLOW" if answers were generic or off-topic.
+The depth_of_understanding.level is "WHY" if the candidate consistently explained trade-offs, internals, or failure modes in their answers; "HOW" if they described usage correctly but did not justify choices; "SHALLOW" if answers were generic, off-topic, or very brief.
 
-CRITICAL: Use the actual transcript and evaluation data. Do not invent scores or feedback. The report must reflect the candidate's real performance."""
+CRITICAL: Every strength, weakness, and analysis MUST be directly supported by the candidate's actual answers in the transcripts above. Do not generalize or assume capabilities not demonstrated."""
 
     try:
         url = "https://openrouter.ai/api/v1/chat/completions"
@@ -220,6 +256,10 @@ def _empty_report():
 
 
 def _fallback_report(session):
+    """
+    Fallback report that is entirely based on actual answers provided.
+    This ensures we never use generic templates or assumptions.
+    """
     answers = session.get("answers", [])
     questions = session.get("questions", [])
 
@@ -264,6 +304,7 @@ def _fallback_report(session):
             "probe_focus": q.get("probe_focus", ""),
             "question": q.get("question", ""),
             "candidate_answer": ans.get("transcript", ""),
+            "answer_quality": "excellent" if s >= 8 else "good" if s >= 6 else "adequate" if s >= 4 else "poor" if s >= 2 else "insufficient",
             "score": s,
             "feedback": ev.get("feedback", ""),
             "strengths": ev.get("strengths", []) or [],

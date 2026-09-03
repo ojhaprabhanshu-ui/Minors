@@ -18,7 +18,8 @@ import TechnicalInterviewContainer from "./landing_page/technical_interview/Tech
 import HRInterviewContainer from "./landing_page/hr_interview/HRInterviewContainer";
 import FullInterviewContainer from "./landing_page/full_interview/FullInterviewContainer";
 import BlogPage from "./landing_page/Blog/Blogpage";
-import Resumeform from "./landing_page/resume/ResumeBuilder/resume_builder_form/Resumeform";
+import ResumeWorkspace from "./landing_page/resume/ResumeBuilder/ResumeWorkspace";
+import { ResumeProvider } from "./landing_page/resume/ResumeBuilder/ResumeContext";
 
 function App() {
   const location = useLocation();
@@ -29,23 +30,26 @@ function App() {
       {!hideLayout && <Navbar />}
 
       <main className="main-content">
-        <Routes>
-          <Route path="/" element={<Homepage />} />
-          <Route path="/resumeATS" element={<ResumeATSpage />} />
-          <Route path="/signup" element={<Signup />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/resume/builder" element={<ResumeBuildPage/>}/>
-          <Route path="/resume/templates" element={<RTPAGE/>}/>
-          <Route path="/cv/builder" element={<CVpage/>}/>
-          <Route path="/cv/templates" element={<CTpage/>}/>
-          <Route path="/AiInterviewcoach" element={<AIPage/>}/>
-          <Route path="/oa" element={<OAMainContainer/>}/>
-          <Route path="/technical-interview" element={<TechnicalInterviewContainer/>}/>
-          <Route path="/hr-interview" element={<HRInterviewContainer/>}/>
-          <Route path="/full-interview" element={<FullInterviewContainer/>}/>
-          <Route path="/blog" element={<BlogPage/>}/>
-          <Route path="/resume/builder/resumeform" element={<Resumeform/>}/>
-        </Routes>
+        <ResumeProvider>
+          <Routes>
+            <Route path="/" element={<Homepage />} />
+            <Route path="/resumeATS" element={<ResumeATSpage />} />
+            <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/resume/builder" element={<ResumeBuildPage/>}/>
+            <Route path="/resume/templates" element={<RTPAGE/>}/>
+            <Route path="/cv/builder" element={<CVpage/>}/>
+            <Route path="/cv/templates" element={<CTpage/>}/>
+            <Route path="/AiInterviewcoach" element={<AIPage/>}/>
+            <Route path="/oa" element={<OAMainContainer/>}/>
+            <Route path="/technical-interview" element={<TechnicalInterviewContainer/>}/>
+            <Route path="/hr-interview" element={<HRInterviewContainer/>}/>
+            <Route path="/full-interview" element={<FullInterviewContainer/>}/>
+            <Route path="/blog" element={<BlogPage/>}/>
+            <Route path="/resume/builder/resumeform" element={<ResumeWorkspace/>}/>
+            <Route path="/resume/builder/workspace" element={<ResumeWorkspace/>}/>
+          </Routes>
+        </ResumeProvider>
       </main>
 
       {!hideLayout && <Footer />}

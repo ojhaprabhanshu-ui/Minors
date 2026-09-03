@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function RT2() {
+  const navigate = useNavigate();
+
   const cardsData = [
     {
       title: 'CHRONOLOGICAL RESUME FORMAT',
@@ -236,7 +239,11 @@ function RT2() {
 
       {/* Action Button */}
       <div style={styles.btnContainer}>
-        <button style={styles.button}>
+        <button
+          type="button"
+          style={styles.button}
+          onClick={() => navigate('/resume/builder/resumeform')}
+        >
           Build my resume <span>→</span>
         </button>
       </div>

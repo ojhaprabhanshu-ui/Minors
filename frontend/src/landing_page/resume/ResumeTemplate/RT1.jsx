@@ -1,6 +1,9 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 function RT1() {
+  const navigate = useNavigate();
+
   const styles = {
     section: {
       display: 'flex',
@@ -110,7 +113,11 @@ function RT1() {
       </p>
 
       {/* CTA Button */}
-      <button style={styles.button}>
+      <button
+        type="button"
+        style={styles.button}
+        onClick={() => navigate('/resume/builder/resumeform')}
+      >
         Build Your Resume <span>→</span>
       </button>
 

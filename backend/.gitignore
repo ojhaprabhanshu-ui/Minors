@@ -1,1 +1,5 @@
 backend/aiservices/ai_operations.log
+.env
+__pycache__/
+__pycache__
+*.pyc

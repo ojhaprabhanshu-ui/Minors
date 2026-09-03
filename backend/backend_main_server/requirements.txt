@@ -1,0 +1,12 @@
+just run these commands before running the backend 
+
+npm  init -y            ( to get json file )
+npm i express           ( to get express framework)
+npm i mongoose          ( to connect and access database)
+npm i cors              ( to connet backend to frontend )
+npm i bcrypt            ( to create hash passwor or encryption)
+npm i jsonwebtoken      ( for making a token )
+npm i cookie-parser     ( to make and read  cookies )
+npm i dotenv            ( to operate on safe variables)
+npm i multer            ( for image processing)
+npm i imagekit          ( to use imagekit database)

@@ -1,0 +1,8 @@
+.env
+__pycache__/
+__pycache__
+*.pyc
+*.log
+ai_operations.log
+_scratch_cpp_probe.py
+test_oa_generation.py
